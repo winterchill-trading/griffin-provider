@@ -1,0 +1,23 @@
+(library
+ (name griffin_provider_test)
+ (libraries
+  griffin-provider
+  griffin-client
+  banking-provider
+  core
+  async
+  async_kernel
+  yojson
+  money
+  ledger
+  kyc-core
+  payments-core
+  card-core
+  expect_test_helpers_core)
+ (inline_tests
+  (deps
+   (glob_files fixtures/*.json))
+  (flags
+   (:standard -source-tree-root .)))
+ (preprocess
+  (pps ppx_jane)))
