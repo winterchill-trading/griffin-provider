@@ -510,8 +510,8 @@ let transfer_event (r : Transfer_record.t) ~id ~update =
        })
 ;;
 
-let observe_submission t (r : Transfer_record.t) (s : Model.Submission.t) =
-  let status = Tx_map.submission_status s in
+let observe_submission ?status_reason t (r : Transfer_record.t) (s : Model.Submission.t) =
+  let status = Tx_map.submission_status ?status_reason s in
   let%map r =
     if Transfer.Status.equal status r.status && Option.is_some r.submission_url
     then return r
@@ -528,7 +528,7 @@ let observe_submission t (r : Transfer_record.t) (s : Model.Submission.t) =
       [ transfer_event
           r
           ~id:(Event_id.to_string (Tx_map.submission_event_id s))
-          ~update:(Tx_map.submission_update s)
+          ~update:(Tx_map.submission_update ?status_reason s)
       ] )
 ;;
 
@@ -536,13 +536,36 @@ let scheme_of_record (r : Transfer_record.t) =
   if String.equal r.scheme (Tx_map.scheme_name `Book_transfer) then `Book_transfer else `Fps
 ;;
 
-(* Submits the record's payment and records the submission. *)
+(* Griffin refuses a submission it will never accept with a 422 and a code; anything
+   else (a timeout, a 5xx) may still have been submitted and is left for a retry. *)
+let refusal e =
+  match G.Api_error.status_of_error e with
+  | Some 422 ->
+    let text = Error.to_string_hum e in
+    if String.is_substring text ~substring:"insufficient"
+    then Some Transfer.Failure_reason.Insufficient_funds
+    else Some (Provider_error (Tx_map.error_code text))
+  | _ -> None
+;;
+
+(* Submits the record's payment and records the submission. A refusal marks the transfer
+   [Failed] (so a resend answers with that instead of submitting again), publishes it, and
+   is returned as the error. *)
 let submit t (r : Transfer_record.t) (payment : Model.Payment.t) =
-  let open Deferred.Or_error.Let_syntax in
   match%bind Client.submit_payment t.client payment ~scheme:(scheme_of_record r) with
-  | `Submitted s | `Already_submitted (s :: _) ->
+  | Ok (`Submitted s | `Already_submitted (s :: _)) ->
     Deferred.map (observe_submission t r s) ~f:(fun (r, _) -> Ok r)
-  | `Already_submitted [] -> return r
+  | Ok (`Already_submitted []) -> return (Ok r)
+  | Error e ->
+    (match refusal e with
+     | None -> return (Error e)
+     | Some reason ->
+       let r = { r with status = Failed reason; updated_at = now () } in
+       let%map () = t.store.set_transfer r in
+       publish
+         t
+         (transfer_event r ~id:("failed:" ^ Transfer.Id.to_string r.id) ~update:(Failed reason));
+       Error e)
 ;;
 
 let initiate_transfer t ~from (transfer : Transfer.t) =
@@ -550,12 +573,12 @@ let initiate_transfer t ~from (transfer : Transfer.t) =
   let done_ r = Sca_challenge.Or_challenge.Done (info_of_record r) in
   match%bind.Deferred t.store.find_transfer transfer.id with
   | Some ({ submission_url = Some _; _ } as r) -> return (done_ r)
+  | Some r when not (Transfer.Status.equal r.status Draft) -> return (done_ r)
   | Some ({ payment_url = Some url; _ } as r) ->
     (* Created before a crash, never submitted: send it now. *)
     let%bind payment = Client.get t.client url Model.Payment.t_of_yojson in
     let%map r = submit t r payment in
     done_ r
-  | Some r when not (Transfer.Status.equal r.status Draft) -> return (done_ r)
   | Some _ | None ->
     let%bind () = Deferred.return (Refs.check_account from) in
     let%bind () =
@@ -608,8 +631,11 @@ let transfer t id =
   match r.submission_url with
   | None -> return (info_of_record r)
   | Some url ->
-    let%bind s = Client.submission t.client url in
-    let%map r, _ = observe_submission t r s |> Deferred.ok in
+    (* The raw body as well: the failure reason is not in griffin-client's model. *)
+    let%bind json = Client.get t.client url Fn.id in
+    let%bind s = Deferred.return (G.Page.decode Model.Submission.t_of_yojson json) in
+    let status_reason = Tx_map.status_reason json in
+    let%map r, _ = observe_submission ?status_reason t r s |> Deferred.ok in
     info_of_record r
 ;;
 
@@ -694,7 +720,10 @@ let handle_event t (e : Model.Event.t) =
     let%bind s = Deferred.return (decode_payload e Model.Submission.t_of_yojson) in
     (match%bind.Deferred t.store.find_transfer_by_payment (Refs.id_of_url s.payment_url) with
      | None -> return []
-     | Some r -> Deferred.map (observe_submission t r s) ~f:(fun (_, events) -> Ok events))
+     | Some r ->
+       let status_reason = Tx_map.status_reason e.event_payload in
+       Deferred.map (observe_submission ?status_reason t r s) ~f:(fun (_, events) ->
+         Ok events))
   | "admission-created" | "admission-updated" ->
     let%bind a = Deferred.return (decode_payload e Model.Admission.t_of_yojson) in
     observe_admission t a
