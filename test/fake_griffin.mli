@@ -1,9 +1,9 @@
 (** A small in-memory Griffin for driving the adapter without a network: the recorded
     index, organization, workflows and products, plus legal persons, verifications,
     decisions, accounts, payments, submissions and the event log kept in tables. Every
-    verification completes its checks at once and every submission is delivered, as in
-    the sandbox; a payment above the account balance fails with [insufficient-funds] and
-    one above GBP 1m is refused with Griffin's scheme-limit error. *)
+    verification completes its checks at once and every submission is delivered, as in the
+    sandbox; a payment above the account balance fails with [insufficient-funds] and one
+    above GBP 1m is refused with Griffin's scheme-limit error. *)
 
 open! Core
 open! Async

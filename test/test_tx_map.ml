@@ -57,8 +57,7 @@ let%expect_test "an admitted inbound payment is a deposit" =
   let returned = { admission with admission_status = "returned" } in
   print_s [%sexp (Tx_map.incoming returned inbound : Event.Kind.t option Or_error.t)];
   print_s [%sexp (Tx_map.admission_update returned : Transfer_update.t option)];
-  [%expect
-    {|
+  [%expect {|
     (Ok ())
     ((Returned MS03))
     |}]
@@ -68,7 +67,9 @@ let%expect_test "the deposit event gives a transfer the ledger accepts" =
   match Tx_map.incoming admission inbound with
   | Ok (Some kind) ->
     let e = { Event.id = Event_id.of_string "x"; at = Time_ns.epoch; kind } in
-    (match Event.incoming_transfer e ~account:(Ledger.Account_id.of_string "cust:gbp") with
+    (match
+       Event.incoming_transfer e ~account:(Ledger.Account_id.of_string "cust:gbp")
+     with
      | Some (Ok t) -> print_s [%sexp (t.status : Payments_core.Transfer.Status.t)]
      | Some (Error e) -> print_s [%sexp (e : Error.t)]
      | None -> print_endline "none");
@@ -83,7 +84,9 @@ let%expect_test "a submission failed for lack of funds is our failure, not the s
          "submission-status-reason": "insufficient-funds", "payment-url": "/v0/payments/pm.x",
          "created-at": "2026-10-14T06:15:54.065Z"}|}
   in
-  let s = Griffin_client.Page.decode Model.Submission.t_of_yojson json |> Or_error.ok_exn in
+  let s =
+    Griffin_client.Page.decode Model.Submission.t_of_yojson json |> Or_error.ok_exn
+  in
   let status_reason = Tx_map.status_reason json in
   print_s
     [%sexp

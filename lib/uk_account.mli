@@ -1,10 +1,10 @@
-(** A UK domestic account: six-digit sort code and eight-digit account number, what
-    Faster Payments and Confirmation of Payee address.
+(** A UK domestic account: six-digit sort code and eight-digit account number, what Faster
+    Payments and Confirmation of Payee address.
 
     A GB IBAN carries both: after the country and check digits come four letters of bank
-    code, the sort code and the account number ([GB29 NWBK 601613 31926819]), so a UK payee
-    held as an IBAN converts without any lookup. The other direction needs the bank code,
-    which a sort code alone does not give, so no IBAN is invented here. *)
+    code, the sort code and the account number ([GB29 NWBK 601613 31926819]), so a UK
+    payee held as an IBAN converts without any lookup. The other direction needs the bank
+    code, which a sort code alone does not give, so no IBAN is invented here. *)
 
 open! Core
 

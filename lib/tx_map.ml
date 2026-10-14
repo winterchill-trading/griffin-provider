@@ -77,7 +77,8 @@ let incoming (a : Model.Admission.t) (p : Model.Payment.t) =
     let%bind account_url =
       match a.account_url, p.creditor.account_url with
       | Some u, _ | None, Some u -> Ok u
-      | None, None -> Or_error.error_s [%message "admission names no account" a.admission_url]
+      | None, None ->
+        Or_error.error_s [%message "admission names no account" a.admission_url]
     in
     let%map amount = Units.of_griffin p.payment_amount in
     let provider_ref = Refs.id_of_url p.payment_url in
@@ -86,7 +87,11 @@ let incoming (a : Model.Admission.t) (p : Model.Payment.t) =
       | Some d ->
         Transfer.Counterparty.External
           { name = Option.value d.account_holder ~default:""
-          ; detail = sprintf "%s %s" (payment_scheme a) (party_text { d with account_holder = None })
+          ; detail =
+              sprintf
+                "%s %s"
+                (payment_scheme a)
+                (party_text { d with account_holder = None })
           }
       | None -> External { name = ""; detail = payment_scheme a }
     in

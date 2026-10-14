@@ -12,7 +12,8 @@ let%expect_test "a bank account, its UK details and balance" =
   print_s [%sexp (Account_map.balance account ~at : Account.Balance.t Or_error.t)];
   print_s
     [%sexp
-      (Account_map.uk_details { account with account_status = "opening"; bank_addresses = [] }
+      (Account_map.uk_details
+         { account with account_status = "opening"; bank_addresses = [] }
        : Uk_account.t option)];
   [%expect
     {|
@@ -28,7 +29,10 @@ let%expect_test "a bank account, its UK details and balance" =
     |}]
 ;;
 
-let txs = Fixture.items "transactions" ~key:"account-transactions" Model.Transaction.t_of_yojson
+let txs =
+  Fixture.items "transactions" ~key:"account-transactions" Model.Transaction.t_of_yojson
+;;
+
 let ref_ = Refs.account ~account_url:account.account_url
 
 let%expect_test "transactions become statement lines" =
@@ -51,11 +55,7 @@ let%expect_test "transactions become statement lines" =
 let%expect_test "statements take the opening balance from the transaction before" =
   let show from until =
     match
-      Account_map.statement
-        ref_
-        ~from:(Fixture.time from)
-        ~until:(Fixture.time until)
-        txs
+      Account_map.statement ref_ ~from:(Fixture.time from) ~until:(Fixture.time until) txs
     with
     | Error e -> print_s [%sexp (e : Error.t)]
     | Ok s ->

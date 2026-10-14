@@ -67,7 +67,8 @@ let%expect_test "an onboarded legal person with completed checks is approved" =
       customer
       ~previous:before
       created
-      ~latest_verification:(Some { verification with verification_status = "in-progress" })
+      ~latest_verification:
+        (Some { verification with verification_status = "in-progress" })
       ~at
   in
   let after =
@@ -131,14 +132,12 @@ let%expect_test "a declined decision rejects with its notes" =
           { d with decision_outcome = "declined"; decision_notes = Some "sanctions hit" })
     }
   in
-  print_s
-    [%sexp (Kyc_map.status declined ~latest_verification:None : Kyc_core.Status.t)];
+  print_s [%sexp (Kyc_map.status declined ~latest_verification:None : Kyc_core.Status.t)];
   print_s
     [%sexp
       (Kyc_map.transitions ~from:Created ~to_:(Rejected "x")
        : Kyc_core.Status.Transition.t list)];
-  [%expect
-    {|
+  [%expect {|
     (Rejected "sanctions hit")
     (Submit (Reject x))
     |}]

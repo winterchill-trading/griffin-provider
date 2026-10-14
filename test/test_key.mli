@@ -12,4 +12,8 @@ val y : string
 val b64url : string -> string
 
 (** Headers of a delivery signed the way Griffin signs webhooks, created now. *)
-val sign_delivery : authority:string -> path:string -> body:string -> (string * string) list
+val sign_delivery
+  :  authority:string
+  -> path:string
+  -> body:string
+  -> (string * string) list

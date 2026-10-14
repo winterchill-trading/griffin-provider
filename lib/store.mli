@@ -6,9 +6,9 @@
     Griffin payment and its submission.
 
     A service persists these in its own database by implementing {!t} (the transfer record
-    has a stable binary form); {!memory} serves tests, the CLI and the conformance run, and
-    forgets everything when the process exits. Every write is keyed, so repeating one is
-    harmless. *)
+    has a stable binary form); {!memory} serves tests, the CLI and the conformance run,
+    and forgets everything when the process exits. Every write is keyed, so repeating one
+    is harmless. *)
 
 open! Core
 open Async_kernel

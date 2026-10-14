@@ -47,11 +47,8 @@ let%expect_test "create_customer is idempotent through the store" =
   let%bind a = Adapter.create_customer t ~customer_id ~person >>| ok_exn in
   let%bind b = Adapter.create_customer t ~customer_id ~person >>| ok_exn in
   print_s [%sexp (a.id : Customer_ref.t), (Customer_ref.equal a.id b.id : bool)];
-  print_s
-    [%sexp
-      (Fake_griffin.count fake ~meth:"POST" ~prefix:"/v0/organizations" : int)];
-  [%expect
-    {|
+  print_s [%sexp (Fake_griffin.count fake ~meth:"POST" ~prefix:"/v0/organizations" : int)];
+  [%expect {|
     (lp.fake0001 true)
     1
     |}];
@@ -201,9 +198,7 @@ let%expect_test "payments: Faster Payments, book transfers, resends and refusals
       counterparty = Beneficiary iban_beneficiary
     }
   in
-  let book =
-    draft ~id:"t-book" ~account ~destination:"ba.somewhere" (gbp "2.00")
-  in
+  let book = draft ~id:"t-book" ~account ~destination:"ba.somewhere" (gbp "2.00") in
   Fake_griffin.clear_requests fake;
   let%bind (_ : _ Or_error.t) = Adapter.initiate_transfer t ~from:account.id by_iban in
   let%bind book_started = Adapter.initiate_transfer t ~from:account.id book in
@@ -212,7 +207,8 @@ let%expect_test "payments: Faster Payments, book transfers, resends and refusals
   let%bind book_record = store.find_transfer book.id in
   print_s
     [%sexp
-      (Option.map iban_record ~f:(fun r -> r.scheme, r.creditor) : (string * string) option)
+      (Option.map iban_record ~f:(fun r -> r.scheme, r.creditor)
+       : (string * string) option)
       , (Option.map book_record ~f:(fun r -> r.scheme, r.creditor)
          : (string * string) option)];
   [%expect
@@ -221,7 +217,9 @@ let%expect_test "payments: Faster Payments, book transfers, resends and refusals
     (((fps "60-16-13 31926819")) ((book-transfer ba.somewhere)))
     |}];
   (* Above Griffin's scheme limit: refused at once, and a resend does not submit again. *)
-  let huge = draft ~id:"t-huge" ~account ~destination:"04-00-04 12345678" (gbp "1000000.01") in
+  let huge =
+    draft ~id:"t-huge" ~account ~destination:"04-00-04 12345678" (gbp "1000000.01")
+  in
   let%bind refused = Adapter.initiate_transfer t ~from:account.id huge in
   print_s [%sexp (Result.is_error refused : bool)];
   Fake_griffin.clear_requests fake;
@@ -245,8 +243,7 @@ let%expect_test "payments: Faster Payments, book transfers, resends and refusals
   in
   let%bind (_ : _ Or_error.t) = Adapter.initiate_transfer t ~from:account.id over in
   let%bind info = Adapter.transfer t over.id in
-  print_s
-    [%sexp (Result.map info ~f:(fun i -> i.status) : Transfer.Status.t Or_error.t)];
+  print_s [%sexp (Result.map info ~f:(fun i -> i.status) : Transfer.Status.t Or_error.t)];
   [%expect {| (Ok (Failed Insufficient_funds)) |}];
   let%bind cancel = Adapter.cancel_transfer t pay.id in
   print_s [%sexp (Result.is_error cancel : bool)];
@@ -279,7 +276,10 @@ let%expect_test "webhooks: a signed delivery is verified and mapped, others refu
       ]
   in
   let delivery =
-    Fake_griffin.signed_delivery ~authority:"hooks.example.com" ~path:"/webhooks/griffin" event
+    Fake_griffin.signed_delivery
+      ~authority:"hooks.example.com"
+      ~path:"/webhooks/griffin"
+      event
   in
   let%bind got =
     Adapter.ingest_webhook
@@ -301,11 +301,14 @@ let%expect_test "webhooks: a signed delivery is verified and mapped, others refu
     Adapter.ingest_webhook
       t
       { headers = ("host", "hooks.example.com") :: delivery.headers
-      ; body = String.substr_replace_first delivery.body ~pattern:"returned" ~with_:"delivered"
+      ; body =
+          String.substr_replace_first delivery.body ~pattern:"returned" ~with_:"delivered"
       }
   in
   let%bind elsewhere =
-    Adapter.ingest_webhook t { delivery with headers = ("host", "evil.example.com") :: delivery.headers }
+    Adapter.ingest_webhook
+      t
+      { delivery with headers = ("host", "evil.example.com") :: delivery.headers }
   in
   print_s [%sexp (Result.is_error tampered : bool), (Result.is_error elsewhere : bool)];
   [%expect {| (true true) |}];
@@ -316,12 +319,17 @@ let%expect_test "what Griffin does not offer answers an error" =
   let%bind _, _, t = setup () in
   let card = Card_core.Ids.Card_id.of_string "card-1" in
   let%bind card_answer = Adapter.card t card in
-  let%bind sca = Adapter.confirm_sca t (Sca.Id.of_string "x") ~code:(Sensitive.of_string "1") in
-  let%bind outcome = Adapter.simulate_transfer_outcome t (Transfer.Id.of_string "t") Settled in
+  let%bind sca =
+    Adapter.confirm_sca t (Sca.Id.of_string "x") ~code:(Sensitive.of_string "1")
+  in
+  let%bind outcome =
+    Adapter.simulate_transfer_outcome t (Transfer.Id.of_string "t") Settled
+  in
   print_s [%sexp (Result.is_error card_answer : bool)];
   print_s [%sexp (sca : Sca_challenge.Result.t Or_error.t)];
   print_s [%sexp (outcome : unit Or_error.t)];
-  [%expect {|
+  [%expect
+    {|
     true
     (Error
      ("not offered by Griffin through this adapter"

@@ -16,7 +16,8 @@ type account =
 type t =
   { mutable next : int
   ; legal_persons : (string, Yojson.Safe.t) Hashtbl.t
-  ; verifications : (string, Yojson.Safe.t list) Hashtbl.t (** by legal person, newest first *)
+  ; verifications : (string, Yojson.Safe.t list) Hashtbl.t
+  (** by legal person, newest first *)
   ; accounts : (string, account) Hashtbl.t
   ; payments : (string, Yojson.Safe.t) Hashtbl.t
   ; submissions : (string, Yojson.Safe.t list) Hashtbl.t (** by payment *)
@@ -49,7 +50,13 @@ let fresh t prefix =
 ;;
 
 let str s = `String s
-let money pence = `Assoc [ "currency", str "GBP"; "value", str (sprintf "%d.%02d" (pence / 100) (pence mod 100)) ]
+
+let money pence =
+  `Assoc
+    [ "currency", str "GBP"
+    ; "value", str (sprintf "%d.%02d" (pence / 100) (pence mod 100))
+    ]
+;;
 
 let pence_of (j : Yojson.Safe.t) =
   let open Yojson.Safe.Util in
@@ -78,7 +85,9 @@ let event t ty payload =
      :: t.events
 ;;
 
-let page key items = `Assoc [ key, `List items; "links", `Assoc [ "prev", `Null; "next", `Null ] ]
+let page key items =
+  `Assoc [ key, `List items; "links", `Assoc [ "prev", `Null; "next", `Null ] ]
+;;
 
 let account_json (a : account) =
   let url = "/v0/bank/accounts/" ^ a.id in
@@ -222,7 +231,11 @@ let submit t payment_id =
     let p = Hashtbl.find_exn t.payments payment_id in
     let pence = pence_of (p |> member "payment-amount") in
     let debtor =
-      p |> member "debtor" |> member "account-url" |> to_string |> Griffin_provider.Refs.id_of_url
+      p
+      |> member "debtor"
+      |> member "account-url"
+      |> to_string
+      |> Griffin_provider.Refs.id_of_url
     in
     let from = Hashtbl.find_exn t.accounts debtor in
     if pence > 100_000_000
@@ -302,7 +315,7 @@ let route t ~meth ~path ~query ~body =
     |> List.concat
     |> List.find ~f:(fun v ->
       String.is_suffix
-        (Yojson.Safe.Util.(v |> member "verification-url" |> to_string))
+        Yojson.Safe.Util.(v |> member "verification-url" |> to_string)
         ~suffix:id)
     |> Option.value_map
          ~default:(error ~status:404 ~code:"not-found" ~detail:"no verification")
@@ -322,7 +335,8 @@ let route t ~meth ~path ~query ~body =
      | Some a -> ok (account_json a)
      | None -> error ~status:404 ~code:"not-found" ~detail:"no such account")
   | `GET, [ "bank"; "accounts"; _; "transactions" ] -> ok (page "account-transactions" [])
-  | `POST, [ "bank"; "accounts"; id; "payments" ] -> created (create_payment t id (body ()))
+  | `POST, [ "bank"; "accounts"; id; "payments" ] ->
+    created (create_payment t id (body ()))
   | `POST, [ "payments"; id; "submissions" ] -> submit t id
   | `GET, [ "payments"; id; "submissions" ] ->
     ok (page "submissions" (Hashtbl.find_multi t.submissions id))
@@ -332,7 +346,7 @@ let route t ~meth ~path ~query ~body =
     |> List.concat
     |> List.find_exn ~f:(fun s ->
       String.is_suffix
-        (Yojson.Safe.Util.(s |> member "submission-url" |> to_string))
+        Yojson.Safe.Util.(s |> member "submission-url" |> to_string)
         ~suffix:id)
     |> ok
   | _ -> error ~status:404 ~code:"not-found" ~detail:("no route " ^ path)

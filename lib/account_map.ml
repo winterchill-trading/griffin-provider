@@ -12,12 +12,12 @@ let status s : Ledger.Account_status.t =
 let account (a : Model.Bank_account.t) =
   let open Or_error.Let_syntax in
   let%bind () =
-    Or_error.bind (Money.Currency.of_string_or_error a.account_balance.currency)
+    Or_error.bind
+      (Money.Currency.of_string_or_error a.account_balance.currency)
       ~f:Units.require_gbp
   in
   let%map owner =
-    (* Embedded accounts name the customer as owner; organization accounts as
-       beneficiary. *)
+    (* Embedded accounts name the customer as owner; organization accounts as beneficiary. *)
     match a.owner_url, a.beneficiary_url with
     | Some url, _ | None, Some url -> Ok url
     | None, None -> Or_error.error_s [%message "account has no owner" a.account_url]
@@ -70,12 +70,12 @@ let line (t : Model.Transaction.t) =
   { Statement.Line.at = at_of t
   ; amount
   ; code =
-      String.uppercase t.transaction_origin_type
-      |> String.tr ~target:'-' ~replacement:'_'
+      String.uppercase t.transaction_origin_type |> String.tr ~target:'-' ~replacement:'_'
   ; reference =
       (match t.payment_url with
        | Some url -> Refs.id_of_url url
-       | None -> Option.value t.reference ~default:(Refs.id_of_url t.account_transaction_url))
+       | None ->
+         Option.value t.reference ~default:(Refs.id_of_url t.account_transaction_url))
   ; balance
   }
 ;;
@@ -99,7 +99,14 @@ let statement account ~from ~until txs =
     Money.Amount.sum Money.Currency.gbp (opening :: List.map inside ~f:(fun l -> l.amount))
   in
   let s =
-    { Statement.account; currency = Money.Currency.gbp; from; until; opening; lines = inside; closing }
+    { Statement.account
+    ; currency = Money.Currency.gbp
+    ; from
+    ; until
+    ; opening
+    ; lines = inside
+    ; closing
+    }
   in
   let%map () = Statement.check s in
   s

@@ -70,7 +70,8 @@ let () =
   then
     (* Core's printer: the Async scheduler never starts on this path. *)
     Core.print_endline
-      "griffin-provider conformance skipped (set GRIFFIN_API_KEY and GRIFFIN_LIVE_TESTS=1)"
+      "griffin-provider conformance skipped (set GRIFFIN_API_KEY and \
+       GRIFFIN_LIVE_TESTS=1)"
   else
     Command_unix.run
       (Command.async

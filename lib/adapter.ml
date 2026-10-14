@@ -59,7 +59,10 @@ let name _ = "griffin"
 let now () = Time_ns.now ()
 let note_error t e = t.errors <- e :: t.errors
 let tr t = Client.transport t.client
-let is_sandbox t = String.equal (Client.organization t.client).organization_mode "test-mode"
+
+let is_sandbox t =
+  String.equal (Client.organization t.client).organization_mode "test-mode"
+;;
 
 (* Griffin's own timestamp shape, which its [created-at] filters compare against. *)
 let iso time =
@@ -148,11 +151,15 @@ let event ~id ~at kind = { Event.id = Event_id.of_string id; at; kind }
 
 (* {2 KYC} *)
 
-let legal_person t customer = Client.legal_person t.client (Refs.legal_person_url customer)
+let legal_person t customer =
+  Client.legal_person t.client (Refs.legal_person_url customer)
+;;
 
 let verifications t (lp : Model.Legal_person.t) =
   let open Deferred.Or_error.Let_syntax in
-  let%bind link = need_d "legal-person-verifications-url" lp.legal_person_verifications_url in
+  let%bind link =
+    need_d "legal-person-verifications-url" lp.legal_person_verifications_url
+  in
   let%map page =
     Client.page
       t.client
@@ -163,9 +170,7 @@ let verifications t (lp : Model.Legal_person.t) =
   page.items
 ;;
 
-let latest_verification t lp =
-  Deferred.Or_error.map (verifications t lp) ~f:List.hd
-;;
+let latest_verification t lp = Deferred.Or_error.map (verifications t lp) ~f:List.hd
 
 let observe_kyc t customer lp ~latest_verification =
   let id = Customer_ref.to_string customer in
@@ -316,9 +321,7 @@ let org_accounts t ~query =
 ;;
 
 let customer_accounts t customer =
-  org_accounts
-    t
-    ~query:("filter[owner-url][eq]=" ^ Refs.legal_person_url customer)
+  org_accounts t ~query:("filter[owner-url][eq]=" ^ Refs.legal_person_url customer)
 ;;
 
 let account_event (a : Account.t) ~kind =
@@ -485,8 +488,7 @@ let creditor_of (transfer : Transfer.t) =
       , `Book_transfer
       , account )
   | Internal { account } -> Uk_account.of_string account >>| uk
-  | Crypto _ | Lightning _ ->
-    Or_error.error_string "Griffin pays UK bank accounts only"
+  | Crypto _ | Lightning _ -> Or_error.error_string "Griffin pays UK bank accounts only"
 ;;
 
 let info_of_record (r : Transfer_record.t) =
@@ -533,11 +535,13 @@ let observe_submission ?status_reason t (r : Transfer_record.t) (s : Model.Submi
 ;;
 
 let scheme_of_record (r : Transfer_record.t) =
-  if String.equal r.scheme (Tx_map.scheme_name `Book_transfer) then `Book_transfer else `Fps
+  if String.equal r.scheme (Tx_map.scheme_name `Book_transfer)
+  then `Book_transfer
+  else `Fps
 ;;
 
-(* Griffin refuses a submission it will never accept with a 422 and a code; anything
-   else (a timeout, a 5xx) may still have been submitted and is left for a retry. *)
+(* Griffin refuses a submission it will never accept with a 422 and a code; anything else
+   (a timeout, a 5xx) may still have been submitted and is left for a retry. *)
 let refusal e =
   match G.Api_error.status_of_error e with
   | Some 422 ->
@@ -564,7 +568,10 @@ let submit t (r : Transfer_record.t) (payment : Model.Payment.t) =
        let%map () = t.store.set_transfer r in
        publish
          t
-         (transfer_event r ~id:("failed:" ^ Transfer.Id.to_string r.id) ~update:(Failed reason));
+         (transfer_event
+            r
+            ~id:("failed:" ^ Transfer.Id.to_string r.id)
+            ~update:(Failed reason));
        Error e)
 ;;
 
@@ -644,8 +651,8 @@ let cancel_transfer t id =
   let%bind r = find_record t id in
   match r.submission_url, r.status with
   | None, (Draft | Cancelled) ->
-    (* A payment that was never submitted moves nothing; dropping our record of it is
-       the cancellation. *)
+    (* A payment that was never submitted moves nothing; dropping our record of it is the
+       cancellation. *)
     let r = { r with status = Cancelled; updated_at = now () } in
     let%map.Deferred () = t.store.set_transfer r in
     publish
@@ -718,7 +725,9 @@ let handle_event t (e : Model.Event.t) =
        events)
   | "submission-created" | "submission-updated" ->
     let%bind s = Deferred.return (decode_payload e Model.Submission.t_of_yojson) in
-    (match%bind.Deferred t.store.find_transfer_by_payment (Refs.id_of_url s.payment_url) with
+    (match%bind.Deferred
+       t.store.find_transfer_by_payment (Refs.id_of_url s.payment_url)
+     with
      | None -> return []
      | Some r ->
        let status_reason = Tx_map.status_reason e.event_payload in
@@ -738,7 +747,9 @@ let handle_event t (e : Model.Event.t) =
         | Error _ -> return []))
   | "test-event" ->
     return
-      (publish_all t [ event ~id:("ping:" ^ Refs.id_of_url e.event_url) ~at:(now ()) Ping ])
+      (publish_all
+         t
+         [ event ~id:("ping:" ^ Refs.id_of_url e.event_url) ~at:(now ()) Ping ])
   | _ -> return []
 ;;
 
@@ -777,8 +788,8 @@ let poll_events t =
   loop first ~pages:1
 ;;
 
-(* Customers whose onboarding is not concluded: their decision may come from Griffin's
-   own system without an event this poll sees first. *)
+(* Customers whose onboarding is not concluded: their decision may come from Griffin's own
+   system without an event this poll sees first. *)
 let poll_customers t =
   Hashtbl.to_alist t.kyc_seen
   |> List.filter ~f:(fun (_, (s : Customer.Kyc_status.t)) ->
@@ -887,7 +898,8 @@ let cop_result t ?beneficiary result =
       (* The receiving bank refused the check (account not found, not supported, ...): a
          4xx with an errors body. Anything else is our problem, not an answer. *)
       (match G.Api_error.status_of_error e with
-       | Some status when status >= 400 && status < 500 -> Ok Beneficiary.Payee_check.Not_possible
+       | Some status when status >= 400 && status < 500 ->
+         Ok Beneficiary.Payee_check.Not_possible
        | _ -> Error e)
   in
   Result.iter check ~f:(fun result ->
@@ -936,7 +948,8 @@ let funding_account t =
     let%bind candidates =
       org_accounts
         t
-        ~query:"filter[bank-product-type][in][]=operational-account&filter[account-status][in][]=open"
+        ~query:
+          "filter[bank-product-type][in][]=operational-account&filter[account-status][in][]=open"
     in
     let value (a : Model.Bank_account.t) =
       Units.of_griffin a.account_balance
@@ -975,12 +988,14 @@ let simulate_deposit t ~account ~rail amount =
   let%bind funding = funding_account t in
   let%bind creditor, scheme =
     match rail with
-    | Intraledger -> return (Client.Creditor.Griffin_account target.account_url, `Book_transfer)
+    | Intraledger ->
+      return (Client.Creditor.Griffin_account target.account_url, `Book_transfer)
     | _ ->
       let%map u =
         Deferred.return
           (Account_map.uk_details target
-           |> Result.of_option ~error:(Error.of_string "target account has no sort code"))
+           |> Result.of_option ~error:(Error.of_string "target account has no sort code")
+          )
       in
       ( Client.Creditor.Uk_domestic
           { account_holder = target.display_name
@@ -1004,7 +1019,9 @@ let simulate_deposit t ~account ~rail amount =
       let%map page =
         Client.page
           t.client
-          (with_query payments_link "filter[payment-direction][eq]=inbound-payment&page[size]=50")
+          (with_query
+             payments_link
+             "filter[payment-direction][eq]=inbound-payment&page[size]=50")
           ~key:"payments"
           Model.Payment.t_of_yojson
       in
@@ -1090,8 +1107,6 @@ let ping t =
   else (
     (* No test delivery: the organization's single webhook may point at another
        integration, so the Ping is published here. *)
-    publish
-      t
-      (event ~id:("ping:local:" ^ G.Http_signature.uuid_v4 ()) ~at:(now ()) Ping);
+    publish t (event ~id:("ping:local:" ^ G.Http_signature.uuid_v4 ()) ~at:(now ()) Ping);
     return ())
 ;;

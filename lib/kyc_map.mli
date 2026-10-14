@@ -32,9 +32,9 @@ module Model := Griffin_client.Model
 (** Griffin's display name convention, [SURNAME, Given]. *)
 val display_name : Kyc_core.Person.t -> string
 
-(** Identity, contact details, residence, nationality and mobile claims for [person].
-    UK addresses (GB and the crown dependencies) are split into building number and
-    street name; other countries use address lines. *)
+(** Identity, contact details, residence, nationality and mobile claims for [person]. UK
+    addresses (GB and the crown dependencies) are split into building number and street
+    name; other countries use address lines. *)
 val person_claims : Kyc_core.Person.t -> Yojson.Safe.t list
 
 (** The answers the sandbox "Individual - Account Owners" workflow needs besides the
@@ -45,7 +45,10 @@ val sandbox_questionnaire : Yojson.Safe.t list
 (** {2 Status} *)
 
 (** The state of the identity and address steps for a verification status. *)
-val step_state : verification_status:string -> at:Time_ns.t -> Kyc_core.Verification.State.t
+val step_state
+  :  verification_status:string
+  -> at:Time_ns.t
+  -> Kyc_core.Verification.State.t
 
 val status
   :  Model.Legal_person.t
@@ -69,8 +72,8 @@ val transitions
   -> to_:Kyc_core.Status.t
   -> Kyc_core.Status.Transition.t list
 
-(** The events between two observations of one customer: each step that changed kind,
-    then the status transitions. Ids are derived from the change
+(** The events between two observations of one customer: each step that changed kind, then
+    the status transitions. Ids are derived from the change
     ([kyc:<legal person>:step:<Step>:<State>], [kyc:<legal person>:<From>:<Transition>]),
     so the same change seen by a poll and by a webhook is one event. *)
 val events

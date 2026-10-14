@@ -2,8 +2,7 @@ open! Core
 open Griffin_provider
 
 let%expect_test "the transfer record's binary shape is pinned" =
-  (* A service persists these records; a change here needs a new version and a
-     migration. *)
+  (* A service persists these records; a change here needs a new version and a migration. *)
   print_endline [%bin_digest: Store.Transfer_record.t];
   [%expect {| fd7c04e6707ec155d04b7e17ed14628a |}]
 ;;

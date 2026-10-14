@@ -11,11 +11,12 @@ module Uk_account = Griffin_provider.Uk_account
 
 let timeout = Time_ns.Span.of_sec 60.
 let gbp s = Money.Amount.of_decimal_string Money.Currency.gbp s |> Or_error.ok_exn
-
 let step name = Core.printf "ok    %s\n%!" name
 
 let check cond fmt =
-  ksprintf (fun msg -> if cond then return (Ok ()) else Deferred.Or_error.error_string msg) fmt
+  ksprintf
+    (fun msg -> if cond then return (Ok ()) else Deferred.Or_error.error_string msg)
+    fmt
 ;;
 
 let rec poll ~deadline ~what f =
@@ -140,12 +141,15 @@ let walk t ~run_id =
        (Money.Amount.to_string start));
   (* Deposit by Faster Payments from the organization's funding account. *)
   let deposit = gbp "100.00" in
-  let%bind id = Adapter.simulate_deposit t ~account:account.id ~rail:Sepa_instant deposit in
+  let%bind id =
+    Adapter.simulate_deposit t ~account:account.id ~rail:Sepa_instant deposit
+  in
   let%bind () =
     await events ~what:"Incoming_transfer" (fun (e : Event.t) ->
       match e.kind with
       | Incoming_transfer { transfer; amount; settled = true; _ }
-        when Transfer.Id.equal transfer id -> Option.some_if (Money.Amount.equal amount deposit) ()
+        when Transfer.Id.equal transfer id ->
+        Option.some_if (Money.Amount.equal amount deposit) ()
       | _ -> None)
   in
   let%bind funded = Deferred.return (Money.Amount.add start deposit) in
@@ -158,7 +162,9 @@ let walk t ~run_id =
   (* Payment by Faster Payments to a sort code and account number. *)
   let payment = gbp "30.00" in
   let%bind quote = Adapter.quote_fee t ~from:account.id ~rail:Intraledger payment in
-  let%bind pay = draft ~id:(run_id ^ "-pay") ~account ~destination:"04-00-04 12345678" payment in
+  let%bind pay =
+    draft ~id:(run_id ^ "-pay") ~account ~destination:"04-00-04 12345678" payment
+  in
   let%bind started = Adapter.initiate_transfer t ~from:account.id pay in
   let%bind () =
     match started with
@@ -181,8 +187,8 @@ let walk t ~run_id =
   let%bind () =
     await events ~what:"Transfer Settled" (fun (e : Event.t) ->
       match e.kind with
-      | Transfer { transfer; update = Settled; _ } when Transfer.Id.equal transfer pay.id ->
-        Some ()
+      | Transfer { transfer; update = Settled; _ } when Transfer.Id.equal transfer pay.id
+        -> Some ()
       | _ -> None)
   in
   step "payment by Faster Payments settled, debited amount plus fee, event published";
@@ -279,7 +285,10 @@ let walk t ~run_id =
     in
     let%bind after = available t account.id in
     let%map () =
-      check (Money.Amount.equal after before) !"available changed to %{Money.Amount}" after
+      check
+        (Money.Amount.equal after before)
+        !"available changed to %{Money.Amount}"
+        after
     in
     step
       (sprintf
@@ -318,7 +327,9 @@ let walk t ~run_id =
   let%bind own =
     Adapter.confirm_payee t ~customer:customer.id ~name:"Ada Sandbox" details
   in
-  let show (c : Beneficiary.Payee_check.t) = Sexp.to_string [%sexp (c : Beneficiary.Payee_check.t)] in
+  let show (c : Beneficiary.Payee_check.t) =
+    Sexp.to_string [%sexp (c : Beneficiary.Payee_check.t)]
+  in
   let%bind simulated =
     Deferred.Or_error.List.map
       ~how:`Sequential
@@ -336,11 +347,18 @@ let walk t ~run_id =
         outcome ^ " " ^ show c)
   in
   step
-    (sprintf "CoP: own account %s; simulated %s" (show own) (String.concat ~sep:", " simulated));
+    (sprintf
+       "CoP: own account %s; simulated %s"
+       (show own)
+       (String.concat ~sep:", " simulated));
   (* Refusals. *)
   let%bind () =
     match%bind.Deferred
-      Adapter.issue_virtual_card t ~request_id:(run_id ^ "-card") customer.id ~account:account.id
+      Adapter.issue_virtual_card
+        t
+        ~request_id:(run_id ^ "-card")
+        customer.id
+        ~account:account.id
     with
     | Ok _ -> Deferred.Or_error.error_string "a card was issued"
     | Error _ -> return ()
@@ -388,5 +406,7 @@ let () =
       "griffin-provider GBP walk skipped (set GRIFFIN_API_KEY and GRIFFIN_LIVE_TESTS=1)"
   else
     Command_unix.run
-      (Command.async ~summary:"GBP walk on the Griffin sandbox" (Command.Param.return run))
+      (Command.async
+         ~summary:"GBP walk on the Griffin sandbox"
+         (Command.Param.return run))
 ;;

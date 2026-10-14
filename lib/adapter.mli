@@ -22,8 +22,8 @@
     publish it too.
 
     {b Not offered by Griffin through this adapter} (each answers an error saying so):
-    cards, swaps, standing orders, crypto, SCA, e-mail and SMS codes, and any currency
-    but GBP. *)
+    cards, swaps, standing orders, crypto, SCA, e-mail and SMS codes, and any currency but
+    GBP. *)
 
 open! Core
 open Async
@@ -33,8 +33,8 @@ module Config : sig
   type t =
     { poll_interval : Time_ns.Span.t
     ; open_timeout : Time_ns.Span.t
-    (** how long [open_account] waits for an account to open, and the sandbox
-        simulations for checks and payments to finish *)
+    (** how long [open_account] waits for an account to open, and the sandbox simulations
+        for checks and payments to finish *)
     ; customer_product_class : string
     (** the bank account product class opened for customers ([embedded]) *)
     ; workflow : string (** the onboarding workflow's display name *)
@@ -46,14 +46,13 @@ module Config : sig
     (** account URL [simulate_deposit] pays from; by default the organization's open
         operational account with the largest balance *)
     ; webhook_authority : string option
-    (** host (and port) the webhook URL points at, when the receiving server does not
-        pass a [host] header *)
+    (** host (and port) the webhook URL points at, when the receiving server does not pass
+        a [host] header *)
     ; webhook_path : string (** request path of the webhook URL *)
     ; ping_via_webhook_test : bool
     (** [ping] asks Griffin for a test delivery to the organization's webhook; off by
         default, because that webhook may belong to another integration *)
-    ; event_lookback : Time_ns.Span.t
-    (** how far before [create] the event poll starts *)
+    ; event_lookback : Time_ns.Span.t (** how far before [create] the event poll starts *)
     }
 
   (** Polls every 2 s, waits up to 2 minutes, opens [embedded] accounts, onboards with

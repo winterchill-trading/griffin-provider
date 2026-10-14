@@ -34,9 +34,7 @@ let memory () =
   let accounts = Hashtbl.create (module String) in
   let transfers = Hashtbl.create (module Transfer.Id) in
   let by_payment = Hashtbl.create (module String) in
-  let account_key c cur =
-    Customer_ref.to_string c ^ "/" ^ Money.Currency.to_string cur
-  in
+  let account_key c cur = Customer_ref.to_string c ^ "/" ^ Money.Currency.to_string cur in
   let set tbl key data = Hashtbl.set tbl ~key ~data in
   { find_customer = (fun k -> return (Hashtbl.find customers k))
   ; set_customer = (fun k v -> return (set customers k v))
@@ -44,7 +42,8 @@ let memory () =
   ; set_account = (fun c cur a -> return (set accounts (account_key c cur) a))
   ; find_transfer = (fun k -> return (Hashtbl.find transfers k))
   ; find_transfer_by_payment =
-      (fun p -> return (Option.bind (Hashtbl.find by_payment p) ~f:(Hashtbl.find transfers)))
+      (fun p ->
+        return (Option.bind (Hashtbl.find by_payment p) ~f:(Hashtbl.find transfers)))
   ; set_transfer =
       (fun (r : Transfer_record.t) ->
         set transfers r.id r;

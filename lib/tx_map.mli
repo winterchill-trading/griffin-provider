@@ -20,8 +20,7 @@
     only EUR. GBP payments are therefore reported on [Intraledger] with [Intraledger]
     details, the only bank rail whose validation accepts GBP, so that
     [Event.incoming_transfer] and the transfer state machine work unchanged; the scheme
-    and the counterparty's sort code and account number are kept in the counterparty
-    text. *)
+    and the counterparty's sort code and account number are kept in the counterparty text. *)
 
 open! Core
 open Banking_provider
@@ -50,13 +49,10 @@ val submission_update : ?status_reason:string -> Model.Submission.t -> Transfer_
 (** [Sort code account number (holder)] of a debtor or creditor, as reported. *)
 val party_text : Model.Party.t -> string
 
-(** The [Incoming_transfer] for an inbound payment admitted to [account]; [None] while
-    the admission says nothing about money arriving ([returned], [cancelled]: those are
+(** The [Incoming_transfer] for an inbound payment admitted to [account]; [None] while the
+    admission says nothing about money arriving ([returned], [cancelled]: those are
     {!admission_update}s). *)
-val incoming
-  :  Model.Admission.t
-  -> Model.Payment.t
-  -> Event.Kind.t option Or_error.t
+val incoming : Model.Admission.t -> Model.Payment.t -> Event.Kind.t option Or_error.t
 
 (** A later admission state of a deposit: [Returned] or [Rejected] with [MS03]. *)
 val admission_update : Model.Admission.t -> Transfer_update.t option
@@ -67,6 +63,6 @@ val submission_event_id : Model.Submission.t -> Event_id.t
 
 val admission_event_id : Model.Admission.t -> Event_id.t
 
-(** The Griffin error code inside an error's text
-    ([payment-amount-exceeds-scheme-limit]), or [refused]. *)
+(** The Griffin error code inside an error's text ([payment-amount-exceeds-scheme-limit]),
+    or [refused]. *)
 val error_code : string -> string

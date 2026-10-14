@@ -22,7 +22,14 @@ let kid = "griffin-test-1"
 let b64url s = Base64.encode_exn ~pad:false ~alphabet:Base64.uri_safe_alphabet s
 
 let components =
-  [ "date"; "@method"; "@path"; "@authority"; "content-type"; "content-length"; "content-digest" ]
+  [ "date"
+  ; "@method"
+  ; "@path"
+  ; "@authority"
+  ; "content-type"
+  ; "content-length"
+  ; "content-digest"
+  ]
 ;;
 
 let sign_delivery ~authority ~path ~body =
@@ -52,7 +59,9 @@ let sign_delivery ~authority ~path ~body =
     |> Or_error.ok_exn
   in
   (* A fixed nonce [k] is fine for a test key; never for a real one. *)
-  let signature = Griffin_client.P521.For_testing.sign ~d ~k:(String.make 65 '\003') base in
+  let signature =
+    Griffin_client.P521.For_testing.sign ~d ~k:(String.make 65 '\003') base
+  in
   headers
   @ [ "signature-input", sprintf "%s=%s" kid params
     ; "signature", sprintf "%s=:%s:" kid (Base64.encode_exn signature)
