@@ -254,6 +254,11 @@ let submit t payment_id =
            ; "submission-status", str (if ok then "delivered" else "failed")
            ; "payment-url", p |> member "payment-url"
            ; "account-url", str ("/v0/bank/accounts/" ^ debtor)
+           ; ( "submission-scheme-information"
+             , `Assoc
+                 [ "payment-scheme", str "fps"
+                 ; "end-to-end-identification", str ("E2E" ^ String.uppercase id)
+                 ] )
            ; "created-at", str created_at
            ]
            @ if ok then [] else [ "submission-status-reason", str "insufficient-funds" ])
@@ -261,6 +266,41 @@ let submit t payment_id =
       Hashtbl.add_multi t.submissions ~key:payment_id ~data:s;
       event t "submission-created" s;
       201, Yojson.Safe.to_string s)
+;;
+
+(* Confirmation of Payee: the real check always matches, as in the sandbox; the simulator
+   answers the outcome it is asked for. *)
+let cop body ~outcome =
+  let open Yojson.Safe.Util in
+  let name = body |> member "name" |> to_string_option |> Option.value ~default:"" in
+  let response status result ?suggested () =
+    ( 201
+    , Yojson.Safe.to_string
+        (`Assoc
+          [ "cop-request-url", str "/v0/cop-request/cp.fake"
+          ; ( "account"
+            , `Assoc
+                [ "name", str name
+                ; "bank-id", str "040004"
+                ; "account-number", str "12345678"
+                ; "account-classification", str "personal"
+                ; "requester-legal-person-url", str "/v0/legal-persons/lp.x"
+                ] )
+          ; ( "cop-response"
+            , `Assoc
+                ([ "status", str status; "result", str result ]
+                 @ Option.value_map suggested ~default:[] ~f:(fun n ->
+                   [ "suggested-name", str n ])) )
+          ]) )
+  in
+  match outcome with
+  | "full-match" -> response "verified" "match" ()
+  | "close-match-name" ->
+    response "unverified" "close-match" ~suggested:"Example Payee Close" ()
+  | "no-match-name" -> response "unverified" "no-match" ()
+  | "account-not-found" ->
+    error ~status:400 ~code:"account-not-found" ~detail:"Could not find an account"
+  | other -> error ~status:400 ~code:other ~detail:"account cannot be checked"
 ;;
 
 let route t ~meth ~path ~query ~body =
@@ -301,6 +341,9 @@ let route t ~meth ~path ~query ~body =
     |> List.map ~f:account_json
     |> page "accounts"
     |> ok
+  | `POST, [ "organizations"; _; "cop-request" ] -> cop (body ()) ~outcome:"full-match"
+  | `POST, [ "simulation"; "organizations"; _; "cop-request"; "simulate"; outcome ] ->
+    cop (body ()) ~outcome
   | `POST, [ "organizations"; _; "legal-persons" ] -> created (legal_person t (body ()))
   | `GET, [ "legal-persons"; id ] ->
     (match Hashtbl.find t.legal_persons id with

@@ -105,34 +105,41 @@ let%expect_test "open_account opens one GBP account per customer, and finds it a
       (Account_ref.equal a.id b.id && Account_ref.equal a.id c.id : bool)
       , (Fake_griffin.count fake ~meth:"POST" ~prefix:"/v0/bank/products" : int)];
   let%bind details = Adapter.uk_details t a.id in
-  print_s [%sexp (details : Griffin_provider.Uk_account.t Or_error.t)];
+  print_s [%sexp (details : Payments_core.Uk_account.t Or_error.t)];
   let%bind eur = Adapter.open_account t customer.id Money.Currency.eur in
   print_s [%sexp (eur : Account.t Or_error.t)];
   [%expect
     {|
     ((id ba.fake0005) (customer lp.fake0001) (currency GBP) (status Open)
-     (addresses ()) (opened_at "2026-10-14 09:00:00Z"))
+     (addresses
+      ((Uk_account
+        ((sort_code 000001) (account_number 00000005) (roll_number ())))))
+     (opened_at "2026-10-14 09:00:00Z"))
     (true 1)
-    (Ok ((sort_code 000001) (account_number 00000005)))
+    (Ok ((sort_code 000001) (account_number 00000005) (roll_number ())))
     (Error ("Griffin holds GBP only" (currency EUR)))
     |}];
   return ()
 ;;
 
+(* A Griffin account id goes by book transfer, anything else by Faster Payments. *)
 let draft ~id ~(account : Account.t) ~destination amount =
+  let rail : Rail.t =
+    if String.is_prefix destination ~prefix:"ba." then Intraledger else Faster_payments
+  in
   let beneficiary =
     Beneficiary.create
       ~id:(Beneficiary.Id.of_string ("ben-" ^ id))
       ~owner:(Customer_ref.to_string account.customer)
       ~name:"Example Payee"
-      ~rail:Intraledger
+      ~rail
       ~now:Time_ns.epoch
       destination
     |> ok_exn
   in
   Transfer.draft
     ~id:(Transfer.Id.of_string id)
-    ~rail:Intraledger
+    ~rail
     ~account:(Ledger.Account_id.of_string "app")
     ~beneficiary
     ~amount
@@ -176,27 +183,16 @@ let%expect_test "payments: Faster Payments, book transfers, resends and refusals
   print_s [%sexp (record : Griffin_provider.Store.Transfer_record.t option)];
   [%expect
     {|
-    (((id t-fps) (account ba.fake0005) (amount "30.00 GBP") (scheme fps)
-      (creditor "04-00-04 12345678") (reference rent)
+    (((id t-fps) (account ba.fake0005) (amount "30.00 GBP")
+      (rail Faster_payments) (creditor "04-00-04 12345678") (reference rent)
       (payment_url (/v0/payments/pm.fake0006))
-      (submission_url (/v0/submissions/ps.fake0007)) (status Settled)
+      (submission_url (/v0/submissions/ps.fake0007))
+      (scheme_ref (E2EPS.FAKE0007)) (status Settled)
       (updated_at "1970-01-01 00:00:00Z")))
     |}];
-  (* A GB IBAN beneficiary: what a SEPA-shaped beneficiary of a UK account looks like. *)
-  let iban_beneficiary =
-    Beneficiary.create
-      ~id:(Beneficiary.Id.of_string "ben-iban")
-      ~owner:"x"
-      ~name:"Example Payee"
-      ~rail:Sepa_credit
-      ~now:Time_ns.epoch
-      "GB29NWBK60161331926819"
-    |> ok_exn
-  in
+  (* A GB IBAN carries the sort code and account number. *)
   let by_iban =
-    { (draft ~id:"t-iban" ~account ~destination:"04-00-04 12345678" (gbp "1.00")) with
-      counterparty = Beneficiary iban_beneficiary
-    }
+    draft ~id:"t-iban" ~account ~destination:"GB29NWBK60161331926819" (gbp "1.00")
   in
   let book = draft ~id:"t-book" ~account ~destination:"ba.somewhere" (gbp "2.00") in
   Fake_griffin.clear_requests fake;
@@ -207,18 +203,21 @@ let%expect_test "payments: Faster Payments, book transfers, resends and refusals
   let%bind book_record = store.find_transfer book.id in
   print_s
     [%sexp
-      (Option.map iban_record ~f:(fun r -> r.scheme, r.creditor)
-       : (string * string) option)
-      , (Option.map book_record ~f:(fun r -> r.scheme, r.creditor)
-         : (string * string) option)];
+      (Option.map iban_record ~f:(fun r -> r.rail, r.creditor) : (Rail.t * string) option)
+      , (Option.map book_record ~f:(fun r -> r.rail, r.creditor)
+         : (Rail.t * string) option)];
   [%expect
     {|
     (Ok Settled)
-    (((fps "60-16-13 31926819")) ((book-transfer ba.somewhere)))
+    (((Faster_payments "60-16-13 31926819")) ((Intraledger ba.somewhere)))
     |}];
-  (* Above Griffin's scheme limit: refused at once, and a resend does not submit again. *)
+  (* Above the scheme limit: refused at once, and a resend does not submit again.
+     payments-core's own draft check refuses this amount first, so the record is built
+     past it to see Griffin's answer. *)
   let huge =
-    draft ~id:"t-huge" ~account ~destination:"04-00-04 12345678" (gbp "1000000.01")
+    { (draft ~id:"t-huge" ~account ~destination:"04-00-04 12345678" (gbp "1.00")) with
+      amount = gbp "1000000.01"
+    }
   in
   let%bind refused = Adapter.initiate_transfer t ~from:account.id huge in
   print_s [%sexp (Result.is_error refused : bool)];
@@ -356,6 +355,64 @@ let%expect_test "a sandbox decline overrides the system's acceptance" =
   [%expect {|
     (Rejected "test decline")
     true
+    |}];
+  return ()
+;;
+
+let%expect_test "verify_payee: Confirmation of Payee, and answers fixed per beneficiary" =
+  let%bind _, _, t = setup () in
+  let%bind customer = approved t in
+  let payee id =
+    Beneficiary.create
+      ~id:(Beneficiary.Id.of_string id)
+      ~owner:(Customer_ref.to_string customer.id)
+      ~name:"Example Payee"
+      ~rail:Faster_payments
+      ~now:Time_ns.epoch
+      "04-00-04 12345678"
+    |> ok_exn
+  in
+  let events = Adapter.events t in
+  let%bind real = Adapter.verify_payee t ~customer:customer.id (payee "b-real") in
+  let%bind answers =
+    Deferred.List.map
+      ~how:`Sequential
+      [ Beneficiary.Payee_check.Close_match { suggested_name = "" }
+      ; No_match
+      ; Account_not_found
+      ; Not_possible
+      ; Unavailable
+      ]
+      ~f:(fun answer ->
+        let b = payee (Sexp.to_string [%sexp (answer : Beneficiary.Payee_check.t)]) in
+        let%bind () = Adapter.simulate_payee_check t b.id answer >>| ok_exn in
+        Adapter.verify_payee t ~customer:customer.id b)
+  in
+  print_s [%sexp (real : Beneficiary.Payee_check.t Or_error.t)];
+  List.iter answers ~f:(fun a ->
+    print_s [%sexp (a : Beneficiary.Payee_check.t Or_error.t)]);
+  let seen =
+    match Pipe.read_now' events with
+    | `Ok q -> Queue.to_list q
+    | `Eof | `Nothing_available -> []
+  in
+  Pipe.close_read events;
+  print_s
+    [%sexp
+      (List.count seen ~f:(fun (e : Event.t) ->
+         match e.kind with
+         | Payee_check _ -> true
+         | _ -> false)
+       : int)];
+  [%expect
+    {|
+    (Ok Match)
+    (Ok (Close_match (suggested_name "Example Payee Close")))
+    (Ok No_match)
+    (Ok Account_not_found)
+    (Ok Not_possible)
+    (Ok Unavailable)
+    7
     |}];
   return ()
 ;;
