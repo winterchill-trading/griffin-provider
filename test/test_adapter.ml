@@ -340,3 +340,22 @@ let%expect_test "what Griffin does not offer answers an error" =
     |}];
   return ()
 ;;
+
+let%expect_test "a sandbox decline overrides the system's acceptance" =
+  let%bind _, _, t = setup () in
+  let%bind customer = Adapter.create_customer t ~customer_id ~person >>| ok_exn in
+  let%bind () =
+    Adapter.simulate_kyc_decision t customer.id (Reject "test decline") >>| ok_exn
+  in
+  let%bind status = Adapter.kyc_status t customer.id >>| ok_exn in
+  print_s [%sexp (status.status : Kyc_core.Status.t)];
+  let%bind resubmit =
+    Adapter.simulate_kyc_decision t customer.id (Request_resubmission [ Email ])
+  in
+  print_s [%sexp (Result.is_error resubmit : bool)];
+  [%expect {|
+    (Rejected "test decline")
+    true
+    |}];
+  return ()
+;;

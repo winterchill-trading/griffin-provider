@@ -135,14 +135,14 @@ let legal_person t body =
   lp
 ;;
 
-let decide t lp_id ~outcome ~verification_url =
+let decide ?(notes = "") t lp_id ~outcome ~verification_url =
   let lp_url = "/v0/legal-persons/" ^ lp_id in
   let decision =
     `Assoc
       [ "legal-person-url", str lp_url
       ; "decision-outcome", str outcome
       ; "verification-url", str verification_url
-      ; "decision-notes", str ""
+      ; "decision-notes", str notes
       ; "created-at", str created_at
       ]
   in
@@ -325,6 +325,8 @@ let route t ~meth ~path ~query ~body =
     let b = body () in
     created
       (decide
+         ~notes:
+           (b |> member "decision-notes" |> to_string_option |> Option.value ~default:"")
          t
          id
          ~outcome:(b |> member "decision-outcome" |> to_string)
