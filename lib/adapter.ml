@@ -448,7 +448,15 @@ let check_rail (rail : Rail.t) =
   match rail with
   | Intraledger | Sepa_credit | Sepa_instant -> Ok ()
   (* GBP payments are still drafted on [Intraledger] here; the UK rails come later. *)
-  | Onchain _ | Lightning | Card_scheme | Faster_payments | Chaps | Bacs ->
+  | Onchain _
+  | Lightning
+  | Card_scheme
+  | Faster_payments
+  | Chaps
+  | Bacs
+  | Ach _
+  | Rtp
+  | Fedwire ->
     Or_error.error_s
       [%message "not offered by Griffin through this adapter" (rail : Rail.t)]
 ;;
@@ -499,7 +507,8 @@ let creditor_of (transfer : Transfer.t) =
       ~sort_code:(Sort_code.to_string a.sort_code)
       ~account_number:a.account_number
     >>| uk
-  | Crypto _ | Lightning _ -> Or_error.error_string "Griffin pays UK bank accounts only"
+  | Crypto _ | Lightning _ | Us_account _ ->
+    Or_error.error_string "Griffin pays UK bank accounts only"
 ;;
 
 let info_of_record (r : Transfer_record.t) =
@@ -1117,7 +1126,7 @@ let verify_payee t ~customer (b : Beneficiary.t) =
       |> Result.ok
     | Bank_account { iban; _ } -> Uk_account.of_iban iban |> Result.ok
     | Internal { account } -> Uk_account.of_string account |> Result.ok
-    | Crypto _ | Lightning _ -> None
+    | Crypto _ | Lightning _ | Us_account _ -> None
   in
   match account with
   | None -> return (Ok Beneficiary.Payee_check.Not_possible)
