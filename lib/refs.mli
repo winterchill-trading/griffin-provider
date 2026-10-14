@@ -15,6 +15,7 @@ val id_of_url : string -> string
 
 (** The legal person a URL names. *)
 val customer : legal_person_url:string -> Customer_ref.t
+
 (** [/v0/legal-persons/<id>]. *)
 val legal_person_url : Customer_ref.t -> string
 
@@ -22,6 +23,7 @@ val legal_person_url : Customer_ref.t -> string
 
 (** The bank account a URL names. *)
 val account : account_url:string -> Account_ref.t
+
 (** [/v0/bank/accounts/<id>]. *)
 val account_url : Account_ref.t -> string
 
