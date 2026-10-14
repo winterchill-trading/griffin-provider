@@ -3,6 +3,7 @@
 
 open! Core
 
+(** [None] when malformed. *)
 val parse : string -> Time_ns.t option
 
 (** [parse], or [default] when the field is absent or malformed. *)

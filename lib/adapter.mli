@@ -64,6 +64,7 @@ end
 
 type t
 
+(** An adapter over a connected client; [store] defaults to {!Store.memory}. *)
 val create : ?config:Config.t -> ?store:Store.t -> Griffin_client.Client.t -> t
 
 (** Connects with [GRIFFIN_*] environment variables (see griffin-client's [Config]);
@@ -75,6 +76,7 @@ val of_env
   -> unit
   -> t Or_error.t Deferred.t
 
+(** The client underneath, for Griffin calls the interface does not cover. *)
 val client : t -> Griffin_client.Client.t
 
 include Provider.S with type t := t

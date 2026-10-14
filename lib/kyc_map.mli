@@ -50,6 +50,7 @@ val step_state
   -> at:Time_ns.t
   -> Kyc_core.Verification.State.t
 
+(** The customer status (see the table above). *)
 val status
   :  Model.Legal_person.t
   -> latest_verification:Model.Verification.t option

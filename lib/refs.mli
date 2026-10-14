@@ -13,12 +13,16 @@ val id_of_url : string -> string
 
 (** {2 Customers (legal persons)} *)
 
+(** The legal person a URL names. *)
 val customer : legal_person_url:string -> Customer_ref.t
+(** [/v0/legal-persons/<id>]. *)
 val legal_person_url : Customer_ref.t -> string
 
 (** {2 Accounts} *)
 
+(** The bank account a URL names. *)
 val account : account_url:string -> Account_ref.t
+(** [/v0/bank/accounts/<id>]. *)
 val account_url : Account_ref.t -> string
 
 (** Fails on a reference that is not a Griffin bank account id ([ba.] prefix). *)
