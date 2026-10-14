@@ -169,3 +169,5 @@ balanced statement, Confirmation of Payee, and refusals for cards and EUR.
   runners print a skip line without credentials.
 - `GRIFFIN_LIVE_TESTS=1 dune test` with `.env` loaded: the conformance suite and the GBP
   walk on the sandbox. Each run creates sandbox legal persons, accounts and payments.
+
+See also `AGENTS.md` (orientation for agents working in this repository), `docs/mapping.md` and `docs/api-notes.md`.
