@@ -8,3 +8,4 @@ module Kyc_map = Kyc_map
 module Account_map = Account_map
 module Tx_map = Tx_map
 module Store = Store
+module Adapter = Adapter
