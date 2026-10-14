@@ -13,8 +13,9 @@ let run () =
   let run_id =
     sprintf "gp%d" (Time_ns.to_int_ns_since_epoch (Time_ns.now ()) / 1_000_000_000)
   in
-  (* The suite's own timeouts and poll interval, unchanged. *)
-  let config = Conformance.Config.default ~run_id in
+  (* The suite's GBP configuration (Faster Payments, a UK resident), with its own timeouts
+     and poll interval unchanged. *)
+  let config = Conformance.Config.gbp ~run_id in
   match%bind
     Adapter.of_env
       ~config:
@@ -65,8 +66,8 @@ let run () =
       "conformance on the Griffin sandbox: %d passed, %d failed\n%!"
       (List.length results - failed)
       failed;
-    (* EUR, SEPA and card scenarios cannot pass against a GBP-only provider; the GBP walk
-       is the gate. Set GRIFFIN_CONFORMANCE_STRICT=1 to fail on any failure. *)
+    (* The card scenario cannot pass: Griffin issues no cards. Set
+       GRIFFIN_CONFORMANCE_STRICT=1 to fail on any failure. *)
     if failed > 0
        && Option.equal String.equal (Sys.getenv "GRIFFIN_CONFORMANCE_STRICT") (Some "1")
     then Stdlib.exit 1
