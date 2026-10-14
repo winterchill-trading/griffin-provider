@@ -17,7 +17,14 @@ let run () =
   let config = Conformance.Config.default ~run_id in
   match%bind
     Adapter.of_env
-      ~config:{ Adapter.Config.default with open_timeout = config.timeout }
+      ~config:
+        { Adapter.Config.default with
+          open_timeout = config.timeout
+        ; (* The suite's forged delivery carries no host header; with an authority to
+             check against, it is refused by the signature check rather than for want of a
+             host. *)
+          webhook_authority = Some "hooks.example.com"
+        }
       ()
   with
   | Error e ->
