@@ -60,7 +60,7 @@ let balance =
 let details =
   command ~summary:"sort code and account number of an account" account (fun t id ->
     Adapter.uk_details t (Account_ref.of_string id)
-    >>| print_result [%sexp_of: Griffin_provider.Uk_account.t])
+    >>| print_result [%sexp_of: Payments_core.Uk_account.t])
 ;;
 
 let statement =
@@ -93,7 +93,7 @@ let cop =
               (required string)
               ~doc:"DETAILS sort code and account number, or a GB IBAN")))
     (fun t (id, (name, details)) ->
-      match Griffin_provider.Uk_account.of_string details with
+      match Payments_core.Uk_account.of_string details with
       | Error e -> return (print_result [%sexp_of: unit] (Error e))
       | Ok u ->
         Adapter.confirm_payee t ~customer:(Customer_ref.of_string id) ~name u

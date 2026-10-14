@@ -9,6 +9,14 @@ let status s : Ledger.Account_status.t =
   | _ -> Open
 ;;
 
+let uk_details (a : Model.Bank_account.t) =
+  List.find_map a.bank_addresses ~f:(fun b ->
+    (let open Or_error.Let_syntax in
+     let%bind sort_code = Payments_core.Sort_code.of_string b.bank_id in
+     Payments_core.Uk_account.create ~sort_code ~account_number:b.account_number ())
+    |> Result.ok)
+;;
+
 let account (a : Model.Bank_account.t) =
   let open Or_error.Let_syntax in
   let%bind () =
@@ -26,14 +34,11 @@ let account (a : Model.Bank_account.t) =
   ; customer = Refs.customer ~legal_person_url:owner
   ; currency = Money.Currency.gbp
   ; status = status a.account_status
-  ; addresses = []
+  ; addresses =
+      Option.map (uk_details a) ~f:(fun u -> Account.Address.Uk_account u)
+      |> Option.to_list
   ; opened_at = Griffin_time.parse_or ~default:Time_ns.epoch a.created_at
   }
-;;
-
-let uk_details (a : Model.Bank_account.t) =
-  List.find_map a.bank_addresses ~f:(fun b ->
-    Uk_account.create ~sort_code:b.bank_id ~account_number:b.account_number |> Result.ok)
 ;;
 
 let balance (a : Model.Bank_account.t) ~at =

@@ -1,9 +1,8 @@
 (** Griffin bank accounts as {!Banking_provider.Account.t}, balances and statements.
 
-    A Griffin account is GBP only and is addressed by a sort code and an account number
-    ({!Uk_account}). [Account.Address] has no form for those (only IBANs, crypto addresses
-    and Lightning nodes), and Griffin issues no IBAN, so the addresses list stays empty
-    and the details are read with [Adapter.uk_details]. *)
+    A Griffin account is GBP only and is addressed by a sort code and an account number,
+    reported as its one [Account.Address.Uk_account] once the account is open. Griffin
+    issues no IBAN. *)
 
 open! Core
 open Banking_provider
@@ -12,11 +11,12 @@ module Model := Griffin_client.Model
 (** [open] and [opening] are open, [closing] frozen (nothing goes out), [closed] closed. *)
 val status : string -> Ledger.Account_status.t
 
-(** Fails for an account without an owner or in another currency. *)
+(** Fails for an account without an owner or in another currency. The sort code and
+    account number, once assigned, are its address. *)
 val account : Model.Bank_account.t -> Account.t Or_error.t
 
 (** The first sort code and account number of the account; [None] while it is opening. *)
-val uk_details : Model.Bank_account.t -> Uk_account.t option
+val uk_details : Model.Bank_account.t -> Payments_core.Uk_account.t option
 
 (** [posted] is the account balance, [available] what Griffin reports as available (the
     same when it reports none), [held] the difference. *)
