@@ -1,4 +1,4 @@
-(** {!Banking_provider.Provider.S} and {!Banking_provider.Sandbox.S} over the Griffin API
+(** [Banking_provider.Provider.S] and [Banking_provider.Sandbox.S] over the Griffin API
     ([griffin-client]): UK onboarding, GBP accounts, Faster Payments and book transfers.
 
     {b Ids.} A customer is a Griffin legal person and an account a Griffin bank account

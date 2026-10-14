@@ -50,7 +50,7 @@ val status_reason : Yojson.Safe.t -> string option
     Griffin checked the balance, the scheme never saw it. *)
 val submission_status : ?status_reason:string -> Model.Submission.t -> Transfer.Status.t
 
-(** The same as a {!Banking_provider.Transfer_update.t}. *)
+(** The same as a [Banking_provider.Transfer_update.t]. *)
 val submission_update : ?status_reason:string -> Model.Submission.t -> Transfer_update.t
 
 (** [Sort code account number (holder)] of a debtor or creditor, as reported. *)

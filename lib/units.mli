@@ -1,4 +1,4 @@
-(** Griffin amounts ([{"currency": "GBP", "value": "12.34"}]) as {!Money.Amount.t}.
+(** Griffin amounts ([{"currency": "GBP", "value": "12.34"}]) as [Money.Amount.t].
 
     Griffin accounts hold pounds sterling only; values are unsigned decimal strings with
     two places, the direction travelling in a separate field. *)

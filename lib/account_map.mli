@@ -1,4 +1,4 @@
-(** Griffin bank accounts as {!Banking_provider.Account.t}, balances and statements.
+(** Griffin bank accounts as [Banking_provider.Account.t], balances and statements.
 
     A Griffin account is GBP only and is addressed by a sort code and an account number,
     reported as its one [Account.Address.Uk_account] once the account is open. Griffin
