@@ -16,22 +16,28 @@
     Griffin's scheme status codes are not ISO 20022 reasons: a four-character one is kept
     as such ([Other]), anything else becomes [MS03] (not specified, agent generated).
 
-    {b Rail.} payments-core has no Faster Payments rail yet, and its SEPA rails accept
-    only EUR. GBP payments are therefore reported on [Intraledger] with [Intraledger]
-    details, the only bank rail whose validation accepts GBP, so that
-    [Event.incoming_transfer] and the transfer state machine work unchanged; the scheme
-    and the counterparty's sort code and account number are kept in the counterparty text. *)
+    {b Rail.} Faster Payments (and inbound CHAPS and Bacs) are reported on their UK rails
+    with [Uk_domestic] details carrying the scheme's end-to-end id; book transfers inside
+    Griffin on [Intraledger]. *)
 
 open! Core
 open Banking_provider
 open Payments_core
 module Model := Griffin_client.Model
 
-(** The rail GBP payments are reported on (see above). *)
-val rail : Rail.t
+(** Griffin's [payment-scheme] as a rail: [book-transfer] is [Intraledger], [chaps] and
+    [bacs] their rails, anything else [Faster_payments]. *)
+val rail_of_scheme : string -> Rail.t
 
-(** Griffin's [fps] or [book-transfer], as text for counterparty details. *)
-val scheme_name : [ `Fps | `Book_transfer ] -> string
+(** The Griffin scheme a transfer on [rail] is submitted to; Griffin submits Faster
+    Payments and book transfers only. *)
+val scheme_of_rail : Rail.t -> [ `Fps | `Book_transfer ] Or_error.t
+
+(** [Uk_domestic] for the UK rails, [Intraledger] otherwise. *)
+val details : Rail.t -> scheme_ref:string option -> Transfer.Details.t
+
+(** The scheme's end-to-end id of a submission. *)
+val scheme_ref : Model.Submission.t -> string option
 
 (** A scheme status code as a reason ([MS03] when absent or not four characters). *)
 val reason : string option -> Iso_reason.t

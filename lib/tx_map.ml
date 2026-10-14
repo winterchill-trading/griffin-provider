@@ -1,18 +1,31 @@
 open! Core
 open Banking_provider
-
-(* payments-core has a [Uk_account] of its own now; this adapter still uses the local one,
-   so keep it visible past the open. *)
-module Local_uk_account = Uk_account
 open Payments_core
-module Uk_account = Local_uk_account
 module Model = Griffin_client.Model
 
-let rail = Rail.Intraledger
+let rail_of_scheme = function
+  | "book-transfer" -> Rail.Intraledger
+  | "chaps" -> Chaps
+  | "bacs" -> Bacs
+  | _ -> Faster_payments
+;;
 
-let scheme_name = function
-  | `Fps -> "fps"
-  | `Book_transfer -> "book-transfer"
+let scheme_of_rail : Rail.t -> _ = function
+  | Intraledger -> Ok `Book_transfer
+  | Faster_payments -> Ok `Fps
+  | rail ->
+    Or_error.error_s
+      [%message "Griffin sends Faster Payments and book transfers only" (rail : Rail.t)]
+;;
+
+let details (rail : Rail.t) ~scheme_ref : Transfer.Details.t =
+  match rail with
+  | Faster_payments | Chaps | Bacs -> Uk_domestic { scheme_ref; value_date = None }
+  | _ -> Intraledger
+;;
+
+let scheme_ref (s : Model.Submission.t) =
+  Option.bind s.submission_scheme_information ~f:(fun i -> i.end_to_end_identification)
 ;;
 
 let reason code =
@@ -59,7 +72,10 @@ let party_text (p : Model.Party.t) =
   let details =
     match p.bank_id, p.account_number with
     | Some sort_code, Some account_number ->
-      (match Uk_account.create ~sort_code ~account_number with
+      (match
+         Or_error.bind (Sort_code.of_string sort_code) ~f:(fun sort_code ->
+           Uk_account.create ~sort_code ~account_number ())
+       with
        | Ok u -> Uk_account.to_string u
        | Error _ -> sort_code ^ " " ^ account_number)
     | _ -> Option.value_map p.account_url ~default:"unknown" ~f:Refs.id_of_url
@@ -87,6 +103,10 @@ let incoming (a : Model.Admission.t) (p : Model.Payment.t) =
     in
     let%map amount = Units.of_griffin p.payment_amount in
     let provider_ref = Refs.id_of_url p.payment_url in
+    let rail = rail_of_scheme (payment_scheme a) in
+    let scheme_ref =
+      Option.bind a.admission_scheme_information ~f:(fun i -> i.end_to_end_identification)
+    in
     let from =
       match p.debtor with
       | Some d ->
@@ -110,7 +130,7 @@ let incoming (a : Model.Admission.t) (p : Model.Payment.t) =
          ; fee = Money.Amount.zero Money.Currency.gbp
          ; from
          ; reference = Option.value p.payment_reference ~default:""
-         ; details = Intraledger
+         ; details = details rail ~scheme_ref
          ; settled = String.equal status "delivered"
          })
 ;;

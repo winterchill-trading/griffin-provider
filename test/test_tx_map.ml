@@ -48,10 +48,13 @@ let%expect_test "an admitted inbound payment is a deposit" =
     (Ok
      ((Incoming_transfer (account ba.fixture02xxxxxxxxxxxxx)
        (transfer in:pm.fixture03xxxxxxxxxxxxx)
-       (provider_ref pm.fixture03xxxxxxxxxxxxx) (rail Intraledger)
+       (provider_ref pm.fixture03xxxxxxxxxxxxx) (rail Faster_payments)
        (amount "12.34 GBP") (fee "0.00 GBP")
        (from (External (name "Example Org") (detail "fps 00-00-01 00000000")))
-       (reference "fixture inbound") (details Intraledger) (settled true))))
+       (reference "fixture inbound")
+       (details
+        (Uk_domestic ((scheme_ref (5WWPTLUH45NMVGNZTG2DPMPW6A)) (value_date ()))))
+       (settled true))))
     adm:pa.fixture01xxxxxxxxxxxxx:delivered
     |}];
   let returned = { admission with admission_status = "returned" } in
