@@ -1,0 +1,30 @@
+; banking-provider's conformance suite and a GBP walk against the Griffin sandbox.
+; [dune test] runs both, but they only talk to Griffin when GRIFFIN_API_KEY is set and
+; GRIFFIN_LIVE_TESTS=1; otherwise each prints one line and exits 0, which is what CI (no
+; credentials) sees. Each run creates sandbox legal persons, accounts and payments.
+
+(executables
+ (names conformance walk)
+ (libraries
+  core
+  async
+  core_unix.command_unix
+  banking-provider
+  kyc-core
+  money
+  ledger
+  payments-core
+  griffin-client
+  griffin-provider)
+ (preprocess
+  (pps ppx_jane)))
+
+(rule
+ (alias runtest)
+ (action
+  (run %{exe:conformance.exe})))
+
+(rule
+ (alias runtest)
+ (action
+  (run %{exe:walk.exe})))
