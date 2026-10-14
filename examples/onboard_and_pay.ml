@@ -43,8 +43,8 @@ let main () =
   let%bind () = Adapter.simulate_kyc_decision t customer.id Approve in
   let%bind account = Adapter.open_account t customer.id Money.Currency.gbp in
   let%bind details = Adapter.uk_details t account.id in
-  printf !"account %{Account_ref} at %{Griffin_provider.Uk_account}\n" account.id details;
-  let payee = Griffin_provider.Uk_account.of_string "04-00-04 12345678" |> ok_exn in
+  printf !"account %{Account_ref} at %{Payments_core.Uk_account}\n" account.id details;
+  let payee = Payments_core.Uk_account.of_string "04-00-04 12345678" |> ok_exn in
   let%bind check =
     Adapter.confirm_payee t ~customer:customer.id ~name:"Example Payee" payee
   in
@@ -57,13 +57,13 @@ let main () =
            ~id:(Beneficiary.Id.of_string "example-payee")
            ~owner:(Customer_ref.to_string customer.id)
            ~name:"Example Payee"
-           ~rail:Intraledger (* GBP payments ride on Intraledger, see Tx_map *)
+           ~rail:Faster_payments
            ~now:(Time_ns.now ())
-           (Griffin_provider.Uk_account.to_string payee)
+           (Payments_core.Uk_account.to_string payee)
        in
        Transfer.draft
          ~id:(Transfer.Id.of_string (Kyc_core.Customer_id.to_string customer_id ^ "-1"))
-         ~rail:Intraledger
+         ~rail:Faster_payments
          ~account:(Ledger.Account_id.of_string "customer:gbp")
          ~beneficiary
          ~amount:(Money.Amount.of_minor_units_int Money.Currency.gbp 1_000)

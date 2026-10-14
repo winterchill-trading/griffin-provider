@@ -7,7 +7,7 @@ open! Async
 open Banking_provider
 open Payments_core
 module Adapter = Griffin_provider.Adapter
-module Uk_account = Griffin_provider.Uk_account
+module Uk_account = Payments_core.Uk_account
 
 let timeout = Time_ns.Span.of_sec 60.
 let gbp s = Money.Amount.of_decimal_string Money.Currency.gbp s |> Or_error.ok_exn
@@ -86,7 +86,11 @@ let available t account =
   b.available
 ;;
 
+(* A sort code destination goes by Faster Payments, a Griffin account id by book transfer. *)
 let draft ~id ~(account : Account.t) ~destination amount =
+  let rail : Rail.t =
+    if String.is_prefix destination ~prefix:"ba." then Intraledger else Faster_payments
+  in
   Deferred.return
     (let open Or_error.Let_syntax in
      let%bind beneficiary =
@@ -94,13 +98,13 @@ let draft ~id ~(account : Account.t) ~destination amount =
          ~id:(Beneficiary.Id.of_string ("ben-" ^ id))
          ~owner:(Customer_ref.to_string account.customer)
          ~name:"Example Payee"
-         ~rail:Intraledger
+         ~rail
          ~now:(Time_ns.now ())
          destination
      in
      Transfer.draft
        ~id:(Transfer.Id.of_string id)
-       ~rail:Intraledger
+       ~rail
        ~account:(Ledger.Account_id.of_string "walk:app")
        ~beneficiary
        ~amount
@@ -149,7 +153,7 @@ let walk t ~run_id =
   (* Deposit by Faster Payments from the organization's funding account. *)
   let deposit = gbp "100.00" in
   let%bind id =
-    Adapter.simulate_deposit t ~account:account.id ~rail:Sepa_instant deposit
+    Adapter.simulate_deposit t ~account:account.id ~rail:Faster_payments deposit
   in
   let%bind () =
     await events ~what:"Incoming_transfer" (fun (e : Event.t) ->
@@ -168,7 +172,7 @@ let walk t ~run_id =
   step "deposit by Faster Payments published once and credited";
   (* Payment by Faster Payments to a sort code and account number. *)
   let payment = gbp "30.00" in
-  let%bind quote = Adapter.quote_fee t ~from:account.id ~rail:Intraledger payment in
+  let%bind quote = Adapter.quote_fee t ~from:account.id ~rail:Faster_payments payment in
   let%bind pay =
     draft ~id:(run_id ^ "-pay") ~account ~destination:"04-00-04 12345678" payment
   in
@@ -330,32 +334,51 @@ let walk t ~run_id =
        "statement: %d lines, closing %s"
        (List.length statement.lines)
        (Money.Amount.to_string statement.closing));
-  (* Confirmation of Payee. *)
-  let%bind own =
-    Adapter.confirm_payee t ~customer:customer.id ~name:"Ada Sandbox" details
-  in
+  (* Confirmation of Payee through verify_payee: the customer's own account by name, then
+     answers fixed per beneficiary with simulate_payee_check. *)
   let show (c : Beneficiary.Payee_check.t) =
     Sexp.to_string [%sexp (c : Beneficiary.Payee_check.t)]
   in
+  let beneficiary ~id ~name destination =
+    Beneficiary.create
+      ~id:(Beneficiary.Id.of_string (run_id ^ "-" ^ id))
+      ~owner:(Customer_ref.to_string customer.id)
+      ~name
+      ~rail:Faster_payments
+      ~now:(Time_ns.now ())
+      destination
+    |> Deferred.return
+  in
+  let%bind own_payee =
+    beneficiary ~id:"own" ~name:"Ada Sandbox" (Uk_account.to_string details)
+  in
+  let%bind own = Adapter.verify_payee t ~customer:customer.id own_payee in
   let%bind simulated =
     Deferred.Or_error.List.map
       ~how:`Sequential
-      [ "full-match"; "close-match-name"; "no-match-name"; "account-not-found" ]
-      ~f:(fun outcome ->
-        let%map c =
-          Adapter.simulate_confirm_payee
-            t
-            ~customer:customer.id
+      [ Beneficiary.Payee_check.Match
+      ; Close_match { suggested_name = "" }
+      ; No_match
+      ; Account_not_found
+      ; Not_possible
+      ; Unavailable
+      ]
+      ~f:(fun answer ->
+        let%bind b =
+          beneficiary
+            ~id:
+              ("sim-"
+               ^ String.lowercase (List.hd_exn (String.split (show answer) ~on:' ')))
             ~name:"Example Payee"
-            (Uk_account.create ~sort_code:"040004" ~account_number:"12345678"
-             |> Or_error.ok_exn)
-            ~outcome
+            "04-00-04 12345678"
         in
-        outcome ^ " " ^ show c)
+        let%bind () = Adapter.simulate_payee_check t b.id answer in
+        let%map c = Adapter.verify_payee t ~customer:customer.id b in
+        show c)
   in
   step
     (sprintf
-       "CoP: own account %s; simulated %s"
+       "verify_payee: own account %s; simulated %s"
        (show own)
        (String.concat ~sep:", " simulated));
   (* Refusals. *)
