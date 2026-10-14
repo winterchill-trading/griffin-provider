@@ -1,0 +1,45 @@
+{
+  "account-url": "/v0/bank/accounts/ba.fixture01xxxxxxxxxxxxx",
+  "primary-account": false,
+  "pooled-funds": false,
+  "available-balance": {
+    "currency": "GBP",
+    "value": "999982.66"
+  },
+  "account-restricted": false,
+  "display-name": "griffin-client fixture A",
+  "beneficiary-url": "/v0/legal-persons/lp.fixture01xxxxxxxxxxxxx",
+  "account-balance": {
+    "currency": "GBP",
+    "value": "999982.66"
+  },
+  "account-transactions-url": "/v0/bank/accounts/ba.fixture01xxxxxxxxxxxxx/transactions",
+  "created-at": "2026-10-13T19:50:49.576Z",
+  "account-payments-url": "/v0/bank/accounts/ba.fixture01xxxxxxxxxxxxx/payments",
+  "account-mandates-url": "/v0/bank/accounts/ba.fixture01xxxxxxxxxxxxx/mandates",
+  "bank-product-type": "operational-account",
+  "bank-addresses": [
+    {
+      "account-holder": "griffin-client fixture A",
+      "bank-id": "000001",
+      "bank-id-code": "gbdsc",
+      "account-number": "00000000",
+      "account-number-code": "bban"
+    }
+  ],
+  "bank-account-events-url": "/v0/bank/accounts/ba.fixture01xxxxxxxxxxxxx/events",
+  "owner-url": "/v0/legal-persons/lp.fixture01xxxxxxxxxxxxx",
+  "close-account-url": "/v0/bank/accounts/ba.fixture01xxxxxxxxxxxxx/actions/close",
+  "account-statements-url": "/v0/bank/accounts/ba.fixture01xxxxxxxxxxxxx/statements",
+  "account-admissions-url": "/v0/bank/accounts/ba.fixture01xxxxxxxxxxxxx/admissions",
+  "bank-account-restrictions-url": "/v0/bank/accounts/ba.fixture01xxxxxxxxxxxxx/restrictions",
+  "opened-at": "2026-10-13T19:50:49.576Z",
+  "account-status": "open",
+  "account-submissions-url": "/v0/bank/accounts/ba.fixture01xxxxxxxxxxxxx/submissions",
+  "controller-url": "/v0/legal-persons/lp.fixture01xxxxxxxxxxxxx",
+  "accrued-interest": {
+    "currency": "GBP",
+    "value": "0.00"
+  },
+  "bank-account-product-url": "/v0/bank/products/bp.fixture07xxxxxxxxxxxxx"
+}

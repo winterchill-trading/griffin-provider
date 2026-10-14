@@ -1,0 +1,131 @@
+{
+  "account-transactions": [
+    {
+      "effective-at": "2026-10-13T19:51:31.922Z",
+      "account-url": "/v0/bank/accounts/ba.fixture01xxxxxxxxxxxxx",
+      "balance-change": {
+        "currency": "GBP",
+        "value": "5.00"
+      },
+      "account-transaction-url": "/v0/bank/transactions/tr.fixture01xxxxxxxxxxxxx",
+      "reference": "fixture outbound",
+      "processed-at": "2026-10-13T19:51:32.095Z",
+      "account-balance": {
+        "currency": "GBP",
+        "value": "999982.66"
+      },
+      "transaction-origin-type": "payment",
+      "description": "Payment to Example Payee",
+      "balance-change-direction": "debit",
+      "post-datetime": "2026-10-13T19:51:32.095Z",
+      "payment-url": "/v0/payments/pm.fixture01xxxxxxxxxxxxx"
+    },
+    {
+      "effective-at": "2026-10-13T19:51:08.191Z",
+      "account-url": "/v0/bank/accounts/ba.fixture01xxxxxxxxxxxxx",
+      "balance-change": {
+        "currency": "GBP",
+        "value": "12.34"
+      },
+      "account-transaction-url": "/v0/bank/transactions/tr.fixture02xxxxxxxxxxxxx",
+      "reference": "fixture inbound",
+      "processed-at": "2026-10-13T19:51:08.297Z",
+      "account-balance": {
+        "currency": "GBP",
+        "value": "999987.66"
+      },
+      "transaction-origin-type": "payment",
+      "description": "Payment to griffin-client fixture B",
+      "balance-change-direction": "debit",
+      "post-datetime": "2026-10-13T19:51:08.297Z",
+      "payment-url": "/v0/payments/pm.fixture02xxxxxxxxxxxxx"
+    },
+    {
+      "effective-at": "2026-10-13T19:50:49.892Z",
+      "account-url": "/v0/bank/accounts/ba.fixture01xxxxxxxxxxxxx",
+      "balance-change": {
+        "currency": "GBP",
+        "value": "1000000.00"
+      },
+      "account-transaction-url": "/v0/bank/transactions/tr.fixture03xxxxxxxxxxxxx",
+      "processed-at": "2026-10-13T19:50:49.892Z",
+      "account-balance": {
+        "currency": "GBP",
+        "value": "1000000.00"
+      },
+      "transaction-origin-type": "deposit",
+      "balance-change-direction": "credit",
+      "post-datetime": "2026-10-13T19:50:49.892Z"
+    }
+  ],
+  "links": {
+    "prev": null,
+    "next": null
+  },
+  "included": {
+    "payments": [
+      {
+        "creditor": {
+          "account-number": "00000000",
+          "uk-domestic-account-number": "00000000",
+          "account-number-code": "bban",
+          "bank-id": "040004",
+          "uk-domestic-sort-code": "040004",
+          "bank-id-code": "gbdsc",
+          "account-holder": "Example Payee",
+          "creditor-type": "uk-domestic"
+        },
+        "payment-reference": "fixture outbound",
+        "payment-amount": {
+          "currency": "GBP",
+          "value": "5.00"
+        },
+        "payment-direction": "outbound-payment",
+        "payment-type": "credit-transfer",
+        "created-at": "2026-10-13T19:51:31.372Z",
+        "debtor": {
+          "account-number": "00000000",
+          "uk-domestic-account-number": "00000000",
+          "account-number-code": "bban",
+          "bank-id": "000001",
+          "uk-domestic-sort-code": "000001",
+          "bank-id-code": "gbdsc",
+          "account-holder": "Example Org"
+        },
+        "payment-submissions-url": "/v0/payments/pm.fixture01xxxxxxxxxxxxx/submissions",
+        "payment-url": "/v0/payments/pm.fixture01xxxxxxxxxxxxx"
+      },
+      {
+        "creditor": {
+          "account-number": "00000000",
+          "uk-domestic-account-number": "00000000",
+          "account-number-code": "bban",
+          "bank-id": "000001",
+          "uk-domestic-sort-code": "000001",
+          "bank-id-code": "gbdsc",
+          "account-holder": "griffin-client fixture B",
+          "creditor-type": "uk-domestic"
+        },
+        "payment-reference": "fixture inbound",
+        "payment-amount": {
+          "currency": "GBP",
+          "value": "12.34"
+        },
+        "payment-direction": "outbound-payment",
+        "payment-type": "credit-transfer",
+        "created-at": "2026-10-13T19:51:07.600Z",
+        "debtor": {
+          "account-number": "00000000",
+          "uk-domestic-account-number": "00000000",
+          "account-number-code": "bban",
+          "bank-id": "000001",
+          "uk-domestic-sort-code": "000001",
+          "bank-id-code": "gbdsc",
+          "account-holder": "Example Org"
+        },
+        "payment-submissions-url": "/v0/payments/pm.fixture02xxxxxxxxxxxxx/submissions",
+        "payment-url": "/v0/payments/pm.fixture02xxxxxxxxxxxxx"
+      }
+    ]
+  }
+}
