@@ -13,7 +13,10 @@
   kyc-core
   payments-core
   card-core
-  expect_test_helpers_core)
+  expect_test_helpers_core
+  cryptokit
+  base64
+  uri)
  (inline_tests
   (deps
    (glob_files fixtures/*.json))
