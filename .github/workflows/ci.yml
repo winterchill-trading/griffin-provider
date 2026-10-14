@@ -22,7 +22,8 @@ jobs:
       - run: opam exec -- dune build
       - run: opam exec -- dune build @examples/all
       - run: opam exec -- dune test
-      - run: opam install -y result odoc
+      # listing the pins keeps the solver from dropping sibling packages
+      - run: opam install -y result odoc $(opam pin list --short)
       # Warnings in this repository's files fail the step. A warning reported in a
       # dependency's file (a reference in an included signature that does not resolve
       # from here) is shown but belongs to that repository.
