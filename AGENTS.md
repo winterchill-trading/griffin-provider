@@ -68,7 +68,7 @@ Standalone: pin the siblings listed in `.github/workflows/ci.yml` from GitHub, t
 ## CI
 
 `.github/workflows/ci.yml` runs the `ox-setup` action with those pins (cached switch),
-`dune build`, `dune build @examples/all` and `dune test`; the live runners print a skip
+`dune build`, `dune build @examples/all`, `dune test` and `dune build @doc` (odoc warnings in this repository fail it); the live runners print a skip
 line because CI has no credentials. The `obj-magic` job rejects `Obj.magic`. Check with
 `gh run list --limit 1`, then at most one `gh run watch <id> --exit-status`.
 
