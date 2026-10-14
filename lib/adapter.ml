@@ -1,7 +1,12 @@
 open! Core
 open Async
 open Banking_provider
+
+(* payments-core has a [Uk_account] of its own now; this adapter still uses the local one,
+   so keep it visible past the open. *)
+module Local_uk_account = Uk_account
 open Payments_core
+module Uk_account = Local_uk_account
 module G = Griffin_client
 module Model = G.Model
 module Client = G.Client
@@ -442,7 +447,8 @@ let statement t account ~from ~until =
 let check_rail (rail : Rail.t) =
   match rail with
   | Intraledger | Sepa_credit | Sepa_instant -> Ok ()
-  | Onchain _ | Lightning | Card_scheme ->
+  (* GBP payments are still drafted on [Intraledger] here; the UK rails come later. *)
+  | Onchain _ | Lightning | Card_scheme | Faster_payments | Chaps | Bacs ->
     Or_error.error_s
       [%message "not offered by Griffin through this adapter" (rail : Rail.t)]
 ;;
@@ -488,6 +494,11 @@ let creditor_of (transfer : Transfer.t) =
       , `Book_transfer
       , account )
   | Internal { account } -> Uk_account.of_string account >>| uk
+  | Uk_account a ->
+    Uk_account.create
+      ~sort_code:(Sort_code.to_string a.sort_code)
+      ~account_number:a.account_number
+    >>| uk
   | Crypto _ | Lightning _ -> Or_error.error_string "Griffin pays UK bank accounts only"
 ;;
 
@@ -1092,6 +1103,33 @@ let simulate_card_auth _ _ _ = unsupported "cards"
 
 let simulate_transfer_outcome _ _ _ =
   unsupported "transfer outcomes (the sandbox delivers every payment)"
+;;
+
+(* [Provider.S.verify_payee] over [confirm_payee]: UK accounts, GB IBANs and the sort-code
+   text [Internal] beneficiaries carry; other destinations cannot be checked. *)
+let verify_payee t ~customer (b : Beneficiary.t) =
+  let account =
+    match b.destination with
+    | Uk_account a ->
+      Uk_account.create
+        ~sort_code:(Sort_code.to_string a.sort_code)
+        ~account_number:a.account_number
+      |> Result.ok
+    | Bank_account { iban; _ } -> Uk_account.of_iban iban |> Result.ok
+    | Internal { account } -> Uk_account.of_string account |> Result.ok
+    | Crypto _ | Lightning _ -> None
+  in
+  match account with
+  | None -> return (Ok Beneficiary.Payee_check.Not_possible)
+  | Some account -> confirm_payee ~beneficiary:b.id t ~customer ~name:b.name account
+;;
+
+(* Griffin's simulator fixes the answer of one request, not of a beneficiary. *)
+let simulate_payee_check _t (_ : Beneficiary.Id.t) (_ : Beneficiary.Payee_check.t) =
+  return
+    (Or_error.error_string
+       "Griffin simulates one Confirmation of Payee request at a time: use \
+        simulate_confirm_payee")
 ;;
 
 let ping t =

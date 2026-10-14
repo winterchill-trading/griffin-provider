@@ -1,6 +1,11 @@
 open! Core
 open Banking_provider
+
+(* payments-core has a [Uk_account] of its own now; this adapter still uses the local one,
+   so keep it visible past the open. *)
+module Local_uk_account = Uk_account
 open Payments_core
+module Uk_account = Local_uk_account
 module Model = Griffin_client.Model
 
 let rail = Rail.Intraledger
