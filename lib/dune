@@ -1,0 +1,18 @@
+(library
+ (name griffin_provider)
+ (public_name griffin-provider)
+ (libraries
+  core
+  async
+  async_kernel
+  yojson
+  zarith
+  money
+  ledger
+  kyc-core
+  payments-core
+  card-core
+  banking-provider
+  griffin-client)
+ (preprocess
+  (pps ppx_jane)))
