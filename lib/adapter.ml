@@ -19,6 +19,7 @@ module Config = struct
     ; webhook_authority : string option
     ; webhook_path : string
     ; ping_via_webhook_test : bool
+    ; empty_sandbox_accounts : bool
     ; event_lookback : Time_ns.Span.t
     }
 
@@ -33,6 +34,7 @@ module Config = struct
     ; webhook_authority = None
     ; webhook_path = "/webhooks/griffin"
     ; ping_via_webhook_test = false
+    ; empty_sandbox_accounts = true
     ; event_lookback = Time_ns.Span.of_min 1.
     }
   ;;
@@ -343,6 +345,80 @@ let wait_open t (a : Model.Bank_account.t) =
   Client.wait_until_open t.client a ~interval:(Time_ns.Span.of_sec 1.) ~tries
 ;;
 
+let funding_account t =
+  let open Deferred.Or_error.Let_syntax in
+  match t.funding, t.config.funding_account with
+  | Some a, _ -> return a
+  | None, Some url ->
+    let%map a = Client.bank_account t.client url in
+    t.funding <- Some a;
+    a
+  | None, None ->
+    let%bind candidates =
+      org_accounts
+        t
+        ~query:
+          "filter[bank-product-type][in][]=operational-account&filter[account-status][in][]=open"
+    in
+    let value (a : Model.Bank_account.t) =
+      Units.of_griffin a.account_balance
+      |> Result.ok
+      |> Option.value_map ~default:Z.zero ~f:Money.Amount.minor_units
+    in
+    let%bind a =
+      match
+        List.max_elt candidates ~compare:(fun a b -> Z.compare (value a) (value b))
+      with
+      | Some a -> return a
+      | None ->
+        (* New sandbox operational accounts come funded. *)
+        let%bind products = Client.bank_products t.client in
+        let%bind product =
+          List.find products ~f:(fun p ->
+            String.equal p.bank_account_product_class "operational")
+          |> Result.of_option ~error:(Error.of_string "no operational product")
+          |> Deferred.return
+        in
+        let%bind a =
+          Client.open_account t.client product ~display_name:"griffin-provider funding"
+        in
+        wait_open t a
+    in
+    t.funding <- Some a;
+    return a
+;;
+
+(* Sandbox accounts open with GBP 1m already credited; a real account opens empty. Move
+   that opening credit to the funding account by book transfer, so balances (and the
+   conformance suite's checks of them) start from zero. *)
+let empty_sandbox_account t (a : Model.Bank_account.t) =
+  let open Deferred.Or_error.Let_syntax in
+  let%bind posted = Deferred.return (Units.of_griffin a.account_balance) in
+  if not (Money.Amount.is_positive posted)
+  then return a
+  else (
+    let%bind funding = funding_account t in
+    let%bind value = Deferred.return (Units.to_griffin_value posted) in
+    let%bind payment =
+      Client.create_payment
+        ~reference:"sandbox opening credit"
+        t.client
+        a
+        ~creditor:(Griffin_account funding.account_url)
+        ~amount:value
+    in
+    let%bind (_ : [ `Submitted of Model.Submission.t | `Already_submitted of _ ]) =
+      Client.submit_payment t.client payment ~scheme:`Book_transfer
+    in
+    poll_until t ~what:"the opening credit to move" (fun () ->
+      let%map a = Client.bank_account t.client a.account_url in
+      Option.some_if
+        (match Units.of_griffin a.account_balance with
+         | Ok b -> Money.Amount.is_zero b
+         | Error _ -> false)
+        a))
+;;
+
 let open_account t customer currency =
   let open Deferred.Or_error.Let_syntax in
   let%bind () = Deferred.return (Units.require_gbp currency) in
@@ -379,6 +455,11 @@ let open_account t customer currency =
   let ref_ = Refs.account ~account_url:opened.account_url in
   let%bind.Deferred () = t.store.set_account customer currency ref_ in
   let%bind opened = wait_open t opened in
+  let%bind opened =
+    if Option.is_none existing && is_sandbox t && t.config.empty_sandbox_accounts
+    then empty_sandbox_account t opened
+    else return opened
+  in
   let%map account = Deferred.return (Account_map.account opened) in
   publish t (account_event account ~kind:`Opened);
   account
@@ -981,49 +1062,6 @@ let simulate_confirm_payee t ~customer ~name u ~outcome =
 
 (* {2 Sandbox} *)
 
-let funding_account t =
-  let open Deferred.Or_error.Let_syntax in
-  match t.funding, t.config.funding_account with
-  | Some a, _ -> return a
-  | None, Some url ->
-    let%map a = Client.bank_account t.client url in
-    t.funding <- Some a;
-    a
-  | None, None ->
-    let%bind candidates =
-      org_accounts
-        t
-        ~query:
-          "filter[bank-product-type][in][]=operational-account&filter[account-status][in][]=open"
-    in
-    let value (a : Model.Bank_account.t) =
-      Units.of_griffin a.account_balance
-      |> Result.ok
-      |> Option.value_map ~default:Z.zero ~f:Money.Amount.minor_units
-    in
-    let%bind a =
-      match
-        List.max_elt candidates ~compare:(fun a b -> Z.compare (value a) (value b))
-      with
-      | Some a -> return a
-      | None ->
-        (* New sandbox operational accounts come funded. *)
-        let%bind products = Client.bank_products t.client in
-        let%bind product =
-          List.find products ~f:(fun p ->
-            String.equal p.bank_account_product_class "operational")
-          |> Result.of_option ~error:(Error.of_string "no operational product")
-          |> Deferred.return
-        in
-        let%bind a =
-          Client.open_account t.client product ~display_name:"griffin-provider funding"
-        in
-        wait_open t a
-    in
-    t.funding <- Some a;
-    return a
-;;
-
 let simulate_deposit t ~account ~rail amount =
   let open Deferred.Or_error.Let_syntax in
   let%bind () = sandbox_only t "simulate_deposit" in
@@ -1136,39 +1174,16 @@ let simulate_transfer_outcome _ _ _ =
   unsupported "transfer outcomes (the sandbox delivers every payment)"
 ;;
 
-(* A simulated answer as the Griffin simulator outcome that produces it. *)
-let simulator_outcome : Beneficiary.Payee_check.t -> string option = function
-  | Match -> Some "full-match"
-  | Close_match _ -> Some "close-match-name"
-  | No_match -> Some "no-match-name"
-  | Account_not_found -> Some "account-not-found"
-  | Not_possible -> Some "account-not-supported"
-  | Unavailable -> None
-;;
-
 (* Confirmation of Payee for a beneficiary. In the sandbox, an answer fixed by
-   [simulate_payee_check] is asked of Griffin's simulator instead, so it still travels
-   through Griffin; [Unavailable], which the simulator has no outcome for, is answered
-   here. *)
+   [simulate_payee_check] is returned as it was fixed: Griffin's simulator answers one
+   request at a time and words close matches itself ([simulate_confirm_payee] reaches it). *)
 let verify_payee t ~customer (b : Beneficiary.t) =
-  match uk_destination b with
-  | None -> return (Ok Beneficiary.Payee_check.Not_possible)
-  | Some account ->
-    (match Hashtbl.find t.simulated_checks b.id with
-     | None -> confirm_payee ~beneficiary:b.id t ~customer ~name:b.name account
-     | Some answer ->
-       (match simulator_outcome answer with
-        | None ->
-          publish t (payee_check_event b.id answer);
-          return (Ok answer)
-        | Some outcome ->
-          let%map.Deferred result =
-            Client.simulate_confirm_payee
-              t.client
-              (cop_check customer ~name:b.name ~business:false account)
-              ~outcome
-          in
-          cop_result t ~beneficiary:b.id result))
+  match Hashtbl.find t.simulated_checks b.id, uk_destination b with
+  | Some answer, _ ->
+    publish t (payee_check_event b.id answer);
+    return (Ok answer)
+  | None, None -> return (Ok Beneficiary.Payee_check.Not_possible)
+  | None, Some account -> confirm_payee ~beneficiary:b.id t ~customer ~name:b.name account
 ;;
 
 let simulate_payee_check t beneficiary answer =

@@ -15,8 +15,8 @@
     runs no customer authentication on payments, so no SCA challenge is ever returned.
 
     {b Payees.} [verify_payee] is Confirmation of Payee. In the sandbox,
-    [simulate_payee_check] fixes a beneficiary's answer, which later checks ask of
-    Griffin's simulator.
+    [simulate_payee_check] fixes a beneficiary's answer, which later checks return as
+    fixed; [simulate_confirm_payee] reaches Griffin's own per-request simulator.
 
     {b Events.} Griffin posts every organization event to one webhook; a service passes
     each delivery to {!ingest_webhook}. Without one, the adapter polls the organization's
@@ -55,13 +55,16 @@ module Config : sig
     ; ping_via_webhook_test : bool
     (** [ping] asks Griffin for a test delivery to the organization's webhook; off by
         default, because that webhook may belong to another integration *)
+    ; empty_sandbox_accounts : bool
+    (** in the sandbox, move the GBP 1m every new account is credited with to the funding
+        account by book transfer, so a new account starts at zero as a real one does *)
     ; event_lookback : Time_ns.Span.t (** how far before [create] the event poll starts *)
     }
 
   (** Polls every 2 s, waits up to 2 minutes, opens [embedded] accounts, onboards with
       ["Individual - Account Owners"] and the sandbox questionnaire, display names
-      [SURNAME, Given], webhook path [/webhooks/griffin], publishes [ping] locally, and
-      looks one minute back. *)
+      [SURNAME, Given], webhook path [/webhooks/griffin], publishes [ping] locally,
+      empties new sandbox accounts, and looks one minute back. *)
   val default : t
 end
 
