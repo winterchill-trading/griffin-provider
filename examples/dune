@@ -1,0 +1,17 @@
+; Examples are built with the rest of the project (and so in CI) but not installed.
+
+(executables
+ (names onboard_and_pay)
+ (libraries
+  griffin-provider
+  banking-provider
+  griffin-client
+  kyc-core
+  money
+  ledger
+  payments-core
+  core
+  core_unix.command_unix
+  async)
+ (preprocess
+  (pps ppx_jane)))
