@@ -1,0 +1,13 @@
+(executable
+ (name main)
+ (public_name griffin-provider)
+ (libraries
+  core
+  async
+  core_unix.command_unix
+  money
+  banking-provider
+  griffin-client
+  griffin-provider)
+ (preprocess
+  (pps ppx_jane)))
