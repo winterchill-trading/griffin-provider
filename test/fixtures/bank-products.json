@@ -1,0 +1,316 @@
+{
+  "bank-account-products": [
+    {
+      "display-name": "Easy access savings business",
+      "bank-account-product-accounts-url": "/v0/bank/products/bp.fixture01xxxxxxxxxxxxx/accounts",
+      "bank-account-product-class": "savings",
+      "notice-period": {
+        "notice-period-type": "same-or-next-day",
+        "cutoff-time": {
+          "local-time": "12:00:00",
+          "time-zone": "Europe/London"
+        },
+        "payout-time": {
+          "local-time": "16:00:00",
+          "time-zone": "Europe/London"
+        }
+      },
+      "created-at": "2026-09-14T08:56:37.926Z",
+      "funding-type": "dedicated",
+      "payment-schemes": {
+        "faster-payments": {
+          "inbound": true,
+          "outbound": true
+        },
+        "chaps": {
+          "inbound": true
+        },
+        "bacs-direct-credits": {
+          "inbound": true
+        },
+        "bacs-direct-debits": {
+          "paying": true
+        }
+      },
+      "bank-account-product-status": "active",
+      "bank-account-product-url": "/v0/bank/products/bp.fixture01xxxxxxxxxxxxx",
+      "organization-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx",
+      "owner-type": "corporation"
+    },
+    {
+      "display-name": "Bare trust savings",
+      "bank-account-product-accounts-url": "/v0/bank/products/bp.fixture02xxxxxxxxxxxxx/accounts",
+      "bank-account-product-class": "savings",
+      "notice-period": {
+        "notice-period-type": "instant-access"
+      },
+      "created-at": "2026-09-14T08:56:37.926Z",
+      "funding-type": "pooled",
+      "payment-schemes": {
+        "faster-payments": {
+          "inbound": true,
+          "outbound": true
+        },
+        "chaps": {
+          "inbound": true
+        },
+        "bacs-direct-credits": {
+          "inbound": true
+        },
+        "bacs-direct-debits": {
+          "paying": true
+        }
+      },
+      "bank-account-product-status": "active",
+      "bank-account-product-url": "/v0/bank/products/bp.fixture02xxxxxxxxxxxxx",
+      "organization-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx",
+      "owner-type": "corporation"
+    },
+    {
+      "display-name": "Dedicated safeguarding",
+      "bank-account-product-accounts-url": "/v0/bank/products/bp.fixture03xxxxxxxxxxxxx/accounts",
+      "bank-account-product-class": "safeguarding",
+      "notice-period": {
+        "notice-period-type": "instant-access"
+      },
+      "created-at": "2026-09-14T08:56:37.926Z",
+      "funding-type": "dedicated",
+      "payment-schemes": {
+        "faster-payments": {
+          "inbound": true,
+          "outbound": true
+        },
+        "chaps": {
+          "inbound": true
+        },
+        "bacs-direct-credits": {
+          "inbound": true
+        },
+        "bacs-direct-debits": {
+          "paying": true
+        }
+      },
+      "bank-account-product-status": "active",
+      "bank-account-product-url": "/v0/bank/products/bp.fixture03xxxxxxxxxxxxx",
+      "organization-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx",
+      "owner-type": "corporation"
+    },
+    {
+      "display-name": "Embedded consumer",
+      "bank-account-product-accounts-url": "/v0/bank/products/bp.fixture04xxxxxxxxxxxxx/accounts",
+      "bank-account-product-class": "embedded",
+      "notice-period": {
+        "notice-period-type": "instant-access"
+      },
+      "created-at": "2026-09-14T08:56:37.926Z",
+      "funding-type": "dedicated",
+      "payment-schemes": {
+        "faster-payments": {
+          "inbound": true,
+          "outbound": true
+        },
+        "chaps": {
+          "inbound": true
+        },
+        "bacs-direct-credits": {
+          "inbound": true
+        },
+        "bacs-direct-debits": {
+          "paying": true
+        }
+      },
+      "bank-account-product-status": "active",
+      "bank-account-product-url": "/v0/bank/products/bp.fixture04xxxxxxxxxxxxx",
+      "organization-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx",
+      "owner-type": "individual"
+    },
+    {
+      "display-name": "Embedded business",
+      "bank-account-product-accounts-url": "/v0/bank/products/bp.fixture05xxxxxxxxxxxxx/accounts",
+      "bank-account-product-class": "embedded",
+      "notice-period": {
+        "notice-period-type": "instant-access"
+      },
+      "created-at": "2026-09-14T08:56:37.926Z",
+      "funding-type": "dedicated",
+      "payment-schemes": {
+        "faster-payments": {
+          "inbound": true,
+          "outbound": true
+        },
+        "chaps": {
+          "inbound": true
+        },
+        "bacs-direct-credits": {
+          "inbound": true
+        },
+        "bacs-direct-debits": {
+          "paying": true
+        }
+      },
+      "bank-account-product-status": "active",
+      "bank-account-product-url": "/v0/bank/products/bp.fixture05xxxxxxxxxxxxx",
+      "organization-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx",
+      "owner-type": "corporation"
+    },
+    {
+      "display-name": "Easy access savings consumer",
+      "bank-account-product-accounts-url": "/v0/bank/products/bp.fixture06xxxxxxxxxxxxx/accounts",
+      "bank-account-product-class": "savings",
+      "notice-period": {
+        "notice-period-type": "same-or-next-day",
+        "cutoff-time": {
+          "local-time": "12:00:00",
+          "time-zone": "Europe/London"
+        },
+        "payout-time": {
+          "local-time": "16:00:00",
+          "time-zone": "Europe/London"
+        }
+      },
+      "created-at": "2026-09-14T08:56:37.926Z",
+      "funding-type": "dedicated",
+      "payment-schemes": {
+        "faster-payments": {
+          "inbound": true,
+          "outbound": true
+        },
+        "chaps": {
+          "inbound": true
+        },
+        "bacs-direct-credits": {
+          "inbound": true
+        },
+        "bacs-direct-debits": {
+          "paying": true
+        }
+      },
+      "bank-account-product-status": "active",
+      "bank-account-product-url": "/v0/bank/products/bp.fixture06xxxxxxxxxxxxx",
+      "organization-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx",
+      "owner-type": "individual"
+    },
+    {
+      "display-name": "Operational",
+      "bank-account-product-accounts-url": "/v0/bank/products/bp.fixture07xxxxxxxxxxxxx/accounts",
+      "bank-account-product-class": "operational",
+      "notice-period": {
+        "notice-period-type": "instant-access"
+      },
+      "created-at": "2026-09-14T08:56:37.926Z",
+      "funding-type": "dedicated",
+      "payment-schemes": {
+        "faster-payments": {
+          "inbound": true,
+          "outbound": true
+        },
+        "chaps": {
+          "inbound": true
+        },
+        "bacs-direct-credits": {
+          "inbound": true
+        },
+        "bacs-direct-debits": {
+          "paying": true
+        }
+      },
+      "bank-account-product-status": "active",
+      "bank-account-product-url": "/v0/bank/products/bp.fixture07xxxxxxxxxxxxx",
+      "organization-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx",
+      "owner-type": "corporation"
+    },
+    {
+      "display-name": "Pooled safeguarding",
+      "bank-account-product-accounts-url": "/v0/bank/products/bp.fixture08xxxxxxxxxxxxx/accounts",
+      "bank-account-product-class": "safeguarding",
+      "notice-period": {
+        "notice-period-type": "instant-access"
+      },
+      "created-at": "2026-09-14T08:56:37.926Z",
+      "funding-type": "pooled",
+      "payment-schemes": {
+        "faster-payments": {
+          "inbound": true,
+          "outbound": true
+        },
+        "chaps": {
+          "inbound": true
+        },
+        "bacs-direct-credits": {
+          "inbound": true
+        },
+        "bacs-direct-debits": {
+          "paying": true
+        }
+      },
+      "bank-account-product-status": "active",
+      "bank-account-product-url": "/v0/bank/products/bp.fixture08xxxxxxxxxxxxx",
+      "organization-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx",
+      "owner-type": "corporation"
+    },
+    {
+      "display-name": "Pooled client money",
+      "bank-account-product-accounts-url": "/v0/bank/products/bp.fixture09xxxxxxxxxxxxx/accounts",
+      "bank-account-product-class": "client-money",
+      "notice-period": {
+        "notice-period-type": "instant-access"
+      },
+      "created-at": "2026-09-14T08:56:37.926Z",
+      "funding-type": "pooled",
+      "payment-schemes": {
+        "faster-payments": {
+          "inbound": true,
+          "outbound": true
+        },
+        "chaps": {
+          "inbound": true
+        },
+        "bacs-direct-credits": {
+          "inbound": true
+        },
+        "bacs-direct-debits": {
+          "paying": true
+        }
+      },
+      "bank-account-product-status": "active",
+      "client-money-type": "general-client-money",
+      "bank-account-product-url": "/v0/bank/products/bp.fixture09xxxxxxxxxxxxx",
+      "organization-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx",
+      "owner-type": "corporation"
+    },
+    {
+      "display-name": "Dedicated client money",
+      "bank-account-product-accounts-url": "/v0/bank/products/bp.fixture10xxxxxxxxxxxxx/accounts",
+      "bank-account-product-class": "client-money",
+      "notice-period": {
+        "notice-period-type": "instant-access"
+      },
+      "created-at": "2026-09-14T08:56:37.926Z",
+      "funding-type": "dedicated",
+      "payment-schemes": {
+        "faster-payments": {
+          "inbound": true,
+          "outbound": true
+        },
+        "chaps": {
+          "inbound": true
+        },
+        "bacs-direct-credits": {
+          "inbound": true
+        },
+        "bacs-direct-debits": {
+          "paying": true
+        }
+      },
+      "bank-account-product-status": "active",
+      "client-money-type": "general-client-money",
+      "bank-account-product-url": "/v0/bank/products/bp.fixture10xxxxxxxxxxxxx",
+      "organization-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx",
+      "owner-type": "corporation"
+    }
+  ],
+  "links": {
+    "prev": null,
+    "next": null
+  }
+}

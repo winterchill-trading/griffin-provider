@@ -1,0 +1,38 @@
+{
+  "organization-events-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/events",
+  "organization-individuals-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/individuals",
+  "organization-bank-accounts-search-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/bank/accounts/search",
+  "organization-legal-persons-search-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/legal-persons/search",
+  "display-name": "Example Org",
+  "organization-mode": "test-mode",
+  "organization-workflows-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/workflows",
+  "organization-legal-persons-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/legal-persons",
+  "organization-memberships-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/memberships",
+  "own-legal-person-url": "/v0/legal-persons/lp.fixture01xxxxxxxxxxxxx",
+  "organization-bank-account-products-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/bank/products",
+  "organization-corporations-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/corporations",
+  "organization-bank-accounts-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/bank/accounts",
+  "organization-invitations-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/invitations",
+  "organization-onboarding-applications-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/onboarding/applications",
+  "organization-live-access-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/live-access",
+  "organization-payments-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/payments",
+  "can-decide-on-verifications?": true,
+  "organization-webhooks-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/webhooks",
+  "available-roles": [
+    {
+      "display-name": "NC open banking",
+      "description": "Manage open banking consents for your customers' accounts and payments",
+      "role-url": "/v0/roles/re.fixture01xxxxxxxxxxxxx",
+      "role-category": "banking-and-accounts"
+    },
+    {
+      "display-name": "Approve own payments",
+      "description": "Approve your own payment requests (no four-eyes check required)",
+      "role-url": "/v0/roles/re.fixture02xxxxxxxxxxxxx",
+      "role-category": "banking-and-accounts"
+    }
+  ],
+  "organization-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx",
+  "organization-api-keys-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/api-keys",
+  "organization-payments-search-url": "/v0/organizations/og.fixture01xxxxxxxxxxxxx/payments/search"
+}

@@ -1,0 +1,186 @@
+{
+  "links": {
+    "prev": null,
+    "next": null
+  },
+  "meta": {
+    "page": {
+      "total": 6
+    }
+  },
+  "workflows": [
+    {
+      "created-at": "1970-01-01T00:00:00.000Z",
+      "display-name": "Reliance Individual - Account Owners",
+      "description": "Submit information on an individual via reliance",
+      "disabled?": false,
+      "legal-person-type": "individual",
+      "workflow-url": "/v0/workflows/wf.fixture02xxxxxxxxxxxxx",
+      "required-claim-types": {
+        "individual": [
+          "tax-residencies",
+          "individual-identity",
+          "reliance-verification",
+          "us-citizen",
+          "individual-residence",
+          "external-risk-rating"
+        ]
+      }
+    },
+    {
+      "created-at": "1970-01-01T00:00:00.000Z",
+      "display-name": "Reliance LTD Company - Account Owners",
+      "description": "Submit information on a private company limited by shares via Reliance",
+      "disabled?": false,
+      "legal-person-type": "corporation",
+      "workflow-url": "/v0/workflows/wf.fixture03xxxxxxxxxxxxx",
+      "required-claim-types": {
+        "individual": [
+          "tax-residencies",
+          "individual-identity",
+          "reliance-verification",
+          "us-citizen",
+          "individual-residence"
+        ],
+        "corporation": [
+          "aeoi-entity-classification",
+          "uk-company-register",
+          "business-size",
+          "tax-residencies",
+          "director",
+          "sic-codes",
+          "reliance-verification",
+          "external-risk-rating",
+          "nominal-person-with-significant-control",
+          "trading-address"
+        ]
+      }
+    },
+    {
+      "created-at": "1970-01-01T00:00:00.000Z",
+      "display-name": "Sole Trader - Account Owners",
+      "description": "Onboard a sole trader via Verify",
+      "disabled?": false,
+      "legal-person-type": "individual",
+      "workflow-url": "/v0/workflows/wf.fixture04xxxxxxxxxxxxx",
+      "required-claim-types": {
+        "individual": [
+          "business-email-address",
+          "business-owner",
+          "business-size",
+          "contact-details",
+          "business-description",
+          "tax-residencies",
+          "international-operations-countries",
+          "annual-turnover",
+          "mobile-number",
+          "individual-identity",
+          "business-type",
+          "business-industry",
+          "nationality",
+          "individual-sources-of-funds",
+          "cash-payments",
+          "sic-codes",
+          "business-telephone-number",
+          "individual-purposes-of-account",
+          "business-address",
+          "us-citizen",
+          "vat-registration",
+          "individual-residence",
+          "initial-deposit",
+          "business-name",
+          "international-payments-countries",
+          "business-website",
+          "business-start-date"
+        ]
+      }
+    },
+    {
+      "created-at": "1970-01-01T00:00:00.000Z",
+      "display-name": "LTD Company - Account Owners",
+      "description": "Onboard a private company limited by shares via Verify",
+      "disabled?": false,
+      "legal-person-type": "corporation",
+      "workflow-url": "/v0/workflows/wf.fixture05xxxxxxxxxxxxx",
+      "required-claim-types": {
+        "individual": [
+          "contact-details",
+          "tax-residencies",
+          "mobile-number",
+          "individual-identity",
+          "nationality",
+          "us-citizen",
+          "individual-residence"
+        ],
+        "corporation": [
+          "aeoi-entity-classification",
+          "uk-company-register",
+          "company-telephone-number",
+          "business-size",
+          "business-description",
+          "tax-residencies",
+          "international-operations-countries",
+          "annual-turnover",
+          "person-with-significant-control",
+          "director",
+          "company-website",
+          "company-email-address",
+          "cash-payments",
+          "sic-codes",
+          "sources-of-funds",
+          "initial-deposit",
+          "purposes-of-account",
+          "international-payments-countries"
+        ]
+      }
+    },
+    {
+      "created-at": "1970-01-01T00:00:00.000Z",
+      "display-name": "Individual - Account Owners",
+      "description": "Onboard an individual via Verify",
+      "disabled?": false,
+      "legal-person-type": "individual",
+      "workflow-url": "/v0/workflows/wf.fixture01xxxxxxxxxxxxx",
+      "required-claim-types": {
+        "individual": [
+          "contact-details",
+          "tax-residencies",
+          "mobile-number",
+          "individual-identity",
+          "nationality",
+          "individual-sources-of-funds",
+          "cash-payments",
+          "individual-purposes-of-account",
+          "us-citizen",
+          "employment",
+          "individual-income",
+          "individual-residence",
+          "initial-deposit",
+          "international-payments-countries"
+        ]
+      }
+    },
+    {
+      "created-at": "1970-01-01T00:00:00.000Z",
+      "display-name": "Reliance Sole Trader - Account Owners",
+      "description": "Submit information on a sole trader via reliance",
+      "disabled?": false,
+      "legal-person-type": "individual",
+      "workflow-url": "/v0/workflows/wf.fixture06xxxxxxxxxxxxx",
+      "required-claim-types": {
+        "individual": [
+          "business-size",
+          "tax-residencies",
+          "individual-identity",
+          "business-type",
+          "sic-codes",
+          "reliance-verification",
+          "us-citizen",
+          "individual-residence",
+          "external-risk-rating",
+          "business-name"
+        ]
+      }
+    }
+  ]
+}
