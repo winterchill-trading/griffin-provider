@@ -32,15 +32,16 @@ at Griffin (a repeat answers `410 Gone`).
 | `start_verification`    | `Identity_document`, `Address_proof`: `GET /legal-persons/{id}/verifications`, else `POST` the configured workflow | returns `Hosted` with the verification URL as token; other steps are refused |
 | `complete_verification` | none                                                                     | refused: Griffin sends no codes |
 | `kyc_status`            | `GET /legal-persons/{id}`, `GET /legal-persons/{id}/verifications`       | publishes the change as events |
-| `open_account`          | `GET /organizations/{id}/bank/accounts?filter[owner-url][eq]=…`, `GET /organizations/{id}/bank/products`, `POST /bank/products/{id}/accounts` (owner = the legal person), then `GET /bank/accounts/{id}` until `open` | GBP only; product class `Config.customer_product_class` (`embedded`) for individuals |
+| `open_account`          | `GET /organizations/{id}/bank/accounts?filter[owner-url][eq]=…`, `GET /organizations/{id}/bank/products`, `POST /bank/products/{id}/accounts` (owner = the legal person), then `GET /bank/accounts/{id}` until `open` | GBP only; product class `Config.customer_product_class` (`embedded`) for individuals; in the sandbox the opening GBP 1m is moved to the funding account by book transfer (`Config.empty_sandbox_accounts`) |
 | `accounts`              | `GET /organizations/{id}/bank/accounts?filter[owner-url][eq]=…` (paged)  | |
 | `balance`               | `GET /bank/accounts/{id}`                                                | `posted` = `account-balance`, `available` = `available-balance`, `held` the difference |
-| `enrich_account`        | `GET /bank/accounts/{id}`                                                | no addresses: see Account details |
+| `enrich_account`        | `GET /bank/accounts/{id}`                                                | the sort code and account number as `Address.Uk_account` |
 | `statement`             | `GET /bank/accounts/{id}/transactions` (paged, newest first, until one is older than `from`) | opening balance from the transaction before `from` |
 | `quote_fee`             | none                                                                     | zero: Griffin invoices fees to the organization |
-| `initiate_transfer`     | `GET /bank/accounts/{id}`, `POST /bank/accounts/{id}/payments`, `POST /payments/{id}/submissions` (`fps` or `book-transfer`) | never a challenge; a `422` refusal marks the transfer `Failed` |
+| `initiate_transfer`     | `GET /bank/accounts/{id}`, `POST /bank/accounts/{id}/payments`, `POST /payments/{id}/submissions` (`fps` or `book-transfer`) | `Faster_payments` submits `fps`, `Intraledger` `book-transfer`, other rails are refused; never a challenge; a `422` refusal marks the transfer `Failed` |
 | `transfer`              | `GET /submissions/{id}`                                                  | the raw body is read too, for `submission-status-reason` |
 | `cancel_transfer`       | none                                                                     | only a payment never submitted (it moves nothing) |
+| `verify_payee`          | `POST /organizations/{id}/cop-request` for the beneficiary's sort code and account number | a simulated answer (below) is returned as fixed; other destinations `Not_possible` |
 | `confirm_sca`           | none                                                                     | refused: Griffin raises no challenges |
 | `quote_swap`, `execute_swap` | none                                                                | refused |
 | `issue_virtual_card`, `card`, `cards`, `set_card_status`, `set_card_limits`, `card_details_token` | none | refused: no cards |
@@ -52,6 +53,7 @@ at Griffin (a repeat answers `410 Gone`).
 | --------------------------- | -------------------------------------------------------------------- | ----- |
 | `simulate_deposit`          | the funding account (`Config.funding_account`, else the largest open operational account, else a new one): `POST …/payments`, `POST …/submissions`; then the target's `GET …/payments?filter[payment-direction][eq]=inbound-payment` and `GET …/admissions` | found again by its reference; `Intraledger` sends a book transfer, other rails Faster Payments |
 | `simulate_kyc_decision`     | the verification (started if needed) until its checks finish, then `POST /legal-persons/{id}/decisions` unless the sandbox already decided the same | `Approve` accepted, `Reject` declined with the reason as notes; `Request_resubmission` refused |
+| `simulate_payee_check`      | none                                                                 | the answer is kept per beneficiary and returned by later `verify_payee` calls; Griffin's simulator answers one request at a time and words close matches itself |
 | `simulate_card_auth`        | none                                                                 | refused |
 | `simulate_transfer_outcome` | none                                                                 | refused: the sandbox delivers every payment |
 | `ping`                      | with `Config.ping_via_webhook_test`: `POST /webhooks/{id}/actions/test`; otherwise none | by default the `Ping` is published locally (see Gaps) |
@@ -65,28 +67,23 @@ Griffin-specific: `uk_details` (`GET /bank/accounts/{id}`), `confirm_payee`
 
 ## Account details
 
-`Account.Address` carries IBANs, crypto addresses and Lightning nodes. Griffin accounts
-have a sort code and an account number and no IBAN, and an IBAN cannot be derived without
-the bank's four-letter code, so `addresses` stays empty and `uk_details` returns them.
+Griffin accounts have a sort code and an account number and no IBAN; they are reported as
+the account's one `Account.Address.Uk_account` once open, and `uk_details` returns them
+directly.
 
 ## Payments
 
-| Beneficiary destination                          | Griffin creditor          | Scheme          |
-| ------------------------------------------------ | ------------------------- | --------------- |
-| `Bank_account` with a GB IBAN                    | `uk-domestic` (sort code and account number from the IBAN) | `fps` |
-| `Internal` with a sort code and account number (`04-00-04 12345678`, `040004/12345678`) or a GB IBAN | `uk-domestic` | `fps` |
-| `Internal` with a Griffin account id (`ba.…`)    | `griffin-bank-account`    | `book-transfer` |
-| `Crypto`, `Lightning`, a non-GB IBAN             | refused                   |                 |
+| Transfer rail     | Beneficiary destination                                       | Griffin creditor       | Scheme          |
+| ----------------- | ------------------------------------------------------------- | ---------------------- | --------------- |
+| `Faster_payments` | `Uk_account`, a GB IBAN, or `Internal` text `04-00-04 12345678` | `uk-domestic`         | `fps`           |
+| `Intraledger`     | `Internal` with a Griffin account id (`ba.…`)                 | `griffin-bank-account` | `book-transfer` |
+| `Chaps`, `Bacs`, SEPA, US, crypto, cards | any                                   | refused                |                 |
 
-payments-core has no Faster Payments rail, and its SEPA rails accept EUR only, so
-`Transfer.draft` cannot build a GBP SEPA transfer and `Transfer.incoming` would refuse a
-GBP deposit on a SEPA rail. Until a Faster Payments rail and a UK account destination
-exist there, GBP payments are drafted and reported on `Intraledger` with `Intraledger`
-details; the scheme and the counterparty's sort code and account number travel in the
-counterparty text. Sepa rails are accepted on the way in for a transfer record built by
-hand.
-
-References are cut to Griffin's 35 characters.
+Transfers carry `Uk_domestic { scheme_ref; value_date = None }` details, `scheme_ref`
+being the submission's end-to-end id; book transfers carry `Intraledger`. Deposits are
+reported on the admission's scheme: `fps` as `Faster_payments`, `chaps` and `bacs` on their
+rails, `book-transfer` as `Intraledger`. The store keeps each transfer's rail in its V2
+form (`Rail.Stable.V2`). References are cut to Griffin's 35 characters.
 
 ## Events
 
@@ -145,19 +142,17 @@ requires and `Kyc_core.Person.t` does not hold.
 | `match`                                         | `Match`                     |
 | `close-match`                                   | `Close_match` (suggested name) |
 | `no-match`                                      | `No_match`                  |
-| `400` with an `account-…` code (not found, not supported, switched) | `Not_possible` |
+| `400` `account-not-found`                       | `Account_not_found`         |
+| `400` with another `account-…` code (not supported, switched) | `Not_possible` |
+| `5xx`                                           | `Unavailable`               |
 | any other error                                 | the error                   |
 
 ## Gaps
 
-- No Faster Payments rail or UK account destination in payments-core, and no UK account
-  details in `Account.Address`: GBP payments are reported on `Intraledger`, and sort codes
-  come from `uk_details`.
-- No `verify_payee` in `Provider.S`: Confirmation of Payee is the adapter's own
-  `confirm_payee`.
 - No idempotency keys at Griffin: the store is load-bearing.
-- Cards, swaps, standing orders, crypto and SCA: not offered.
+- Cards, swaps, standing orders, crypto, SCA, and outgoing CHAPS and Bacs: not offered.
 - Sandbox: no simulator for inbound payments from outside (deposits come from another
-  sandbox account), every payment is delivered, and new accounts start with GBP 1m.
+  sandbox account), every payment is delivered, and the opening GBP 1m is moved away by a
+  book transfer that shows on statements.
 - `ping` publishes its own `Ping` unless `ping_via_webhook_test` is set, because the
   organization's single webhook may belong to another integration.
