@@ -75,3 +75,24 @@ let%expect_test "the deposit event gives a transfer the ledger accepts" =
     [%expect {| Settled |}]
   | _ -> assert false
 ;;
+
+let%expect_test "a submission failed for lack of funds is our failure, not the scheme's" =
+  let json =
+    Yojson.Safe.from_string
+      {|{"submission-url": "/v0/submissions/ps.x", "submission-status": "failed",
+         "submission-status-reason": "insufficient-funds", "payment-url": "/v0/payments/pm.x",
+         "created-at": "2026-10-14T06:15:54.065Z"}|}
+  in
+  let s = Griffin_client.Page.decode Model.Submission.t_of_yojson json |> Or_error.ok_exn in
+  let status_reason = Tx_map.status_reason json in
+  print_s
+    [%sexp
+      (status_reason : string option)
+      , (Tx_map.submission_status ?status_reason s : Payments_core.Transfer.Status.t)
+      , (Tx_map.submission_update ?status_reason s : Transfer_update.t)];
+  [%expect
+    {|
+    ((insufficient-funds) (Failed Insufficient_funds)
+     (Failed Insufficient_funds))
+    |}]
+;;

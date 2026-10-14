@@ -21,19 +21,30 @@ let scheme_code (s : Model.Submission.t) =
   Option.bind s.submission_scheme_information ~f:(fun i -> i.scheme_status_code)
 ;;
 
-let submission_status (s : Model.Submission.t) : Transfer.Status.t =
-  match s.submission_status with
-  | "processing" -> Pending
-  | "delivered" -> Settled
-  | "failed" -> Rejected (reason (scheme_code s))
-  | "returned" -> Returned (reason (scheme_code s))
+let status_reason (json : Yojson.Safe.t) =
+  match json with
+  | `Assoc fields ->
+    (match List.Assoc.find fields "submission-status-reason" ~equal:String.equal with
+     | Some (`String r) -> Some r
+     | _ -> None)
+  | _ -> None
+;;
+
+let submission_status ?status_reason (s : Model.Submission.t) : Transfer.Status.t =
+  match s.submission_status, status_reason with
+  | "processing", _ -> Pending
+  | "delivered", _ -> Settled
+  | "failed", Some "insufficient-funds" -> Failed Insufficient_funds
+  | "failed", _ -> Rejected (reason (scheme_code s))
+  | "returned", _ -> Returned (reason (scheme_code s))
   | _ -> Submitted
 ;;
 
-let submission_update (s : Model.Submission.t) : Transfer_update.t =
-  match submission_status s with
+let submission_update ?status_reason (s : Model.Submission.t) : Transfer_update.t =
+  match submission_status ?status_reason s with
   | Pending -> Pending
   | Settled -> Settled
+  | Failed f -> Failed f
   | Rejected r -> Rejected r
   | Returned r -> Returned r
   | _ -> Submitted
@@ -109,4 +120,13 @@ let submission_event_id (s : Model.Submission.t) =
 let admission_event_id (a : Model.Admission.t) =
   Event_id.of_string
     (sprintf "adm:%s:%s" (Refs.id_of_url a.admission_url) a.admission_status)
+;;
+
+let error_code text =
+  (* The [code] field of a Griffin error as printed by griffin-client's [Api_error]. *)
+  match String.substr_index text ~pattern:"(code (" with
+  | None -> "refused"
+  | Some i ->
+    let rest = String.drop_prefix text (i + String.length "(code (") in
+    String.take_while rest ~f:(fun c -> not (Char.equal c ')'))
 ;;

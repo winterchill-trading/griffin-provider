@@ -9,6 +9,7 @@
       submission processing  Pending        admission delivered   deposit, settled
       submission delivered   Settled        admission returned    Returned MS03
       submission failed      Rejected       admission cancelled   Rejected MS03
+        (insufficient-funds: Failed Insufficient_funds)
       submission returned    Returned MS03
     v}
 
@@ -36,8 +37,15 @@ val scheme_name : [ `Fps | `Book_transfer ] -> string
 (** A scheme status code as a reason ([MS03] when absent or not four characters). *)
 val reason : string option -> Iso_reason.t
 
-val submission_status : Model.Submission.t -> Transfer.Status.t
-val submission_update : Model.Submission.t -> Transfer_update.t
+(** A submission's [submission-status-reason] (e.g. [insufficient-funds]), which
+    griffin-client's [Submission.t] does not carry; read it from the same JSON. *)
+val status_reason : Yojson.Safe.t -> string option
+
+(** A [failed] submission with reason [insufficient-funds] is [Failed Insufficient_funds]:
+    Griffin checked the balance, the scheme never saw it. *)
+val submission_status : ?status_reason:string -> Model.Submission.t -> Transfer.Status.t
+
+val submission_update : ?status_reason:string -> Model.Submission.t -> Transfer_update.t
 
 (** [Sort code account number (holder)] of a debtor or creditor, as reported. *)
 val party_text : Model.Party.t -> string
@@ -58,3 +66,7 @@ val admission_update : Model.Admission.t -> Transfer_update.t option
 val submission_event_id : Model.Submission.t -> Event_id.t
 
 val admission_event_id : Model.Admission.t -> Event_id.t
+
+(** The Griffin error code inside an error's text
+    ([payment-amount-exceeds-scheme-limit]), or [refused]. *)
+val error_code : string -> string
