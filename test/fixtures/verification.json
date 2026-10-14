@@ -1,0 +1,13 @@
+{
+  "risk-rating": "low-risk",
+  "verification-resources-url": "/v0/verifications/vn.fixture01xxxxxxxxxxxxx/resources",
+  "verification-risk-assessments-url": "/v0/verifications/vn.fixture01xxxxxxxxxxxxx/risk-assessments",
+  "verification-profiles-url": "/v0/verifications/vn.fixture01xxxxxxxxxxxxx/profiles",
+  "created-at": "2026-10-13T19:50:34.162Z",
+  "verification-status": "checks-complete",
+  "legal-person-url": "/v0/legal-persons/lp.fixture02xxxxxxxxxxxxx",
+  "updated-at": "2026-10-13T19:50:34.162Z",
+  "verification-url": "/v0/verifications/vn.fixture01xxxxxxxxxxxxx",
+  "workflow-url": "/v0/workflows/wf.fixture01xxxxxxxxxxxxx",
+  "verification-checks-url": "/v0/verifications/vn.fixture01xxxxxxxxxxxxx/checks"
+}

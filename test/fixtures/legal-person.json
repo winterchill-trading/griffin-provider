@@ -1,0 +1,24 @@
+{
+  "legal-person-status": "onboarded",
+  "legal-person-type": "individual",
+  "legal-person-bank-payees-url": "/v0/legal-persons/lp.fixture02xxxxxxxxxxxxx/bank/payees",
+  "legal-person-documents-url": "/v0/legal-persons/lp.fixture02xxxxxxxxxxxxx/documents",
+  "display-name": "FIXTURE, Ada",
+  "legal-name": "Sam Example",
+  "created-at": "2026-10-13T19:50:29.343Z",
+  "legal-person-url": "/v0/legal-persons/lp.fixture02xxxxxxxxxxxxx",
+  "latest-risk-rating-url": "/v0/risk-ratings/rr.fixture01xxxxxxxxxxxxx",
+  "legal-person-claims-url": "/v0/legal-persons/lp.fixture02xxxxxxxxxxxxx/claims",
+  "status-changed-at": "2026-10-13T19:50:34.162Z",
+  "legal-person-decisions-url": "/v0/legal-persons/lp.fixture02xxxxxxxxxxxxx/decisions",
+  "legal-person-verifications-url": "/v0/legal-persons/lp.fixture02xxxxxxxxxxxxx/verifications",
+  "application-status": "accepted",
+  "latest-decision": {
+    "legal-person-url": "/v0/legal-persons/lp.fixture02xxxxxxxxxxxxx",
+    "decision-outcome": "accepted",
+    "verification-url": "/v0/verifications/vn.fixture01xxxxxxxxxxxxx",
+    "decision-notes": "",
+    "created-at": "2026-10-13T19:50:34.162Z",
+    "decision-maker": "system"
+  }
+}

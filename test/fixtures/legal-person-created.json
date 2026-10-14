@@ -1,0 +1,11 @@
+{
+  "legal-person-type": "individual",
+  "legal-person-bank-payees-url": "/v0/legal-persons/lp.fixture02xxxxxxxxxxxxx/bank/payees",
+  "legal-person-documents-url": "/v0/legal-persons/lp.fixture02xxxxxxxxxxxxx/documents",
+  "display-name": "FIXTURE, Ada",
+  "created-at": "2026-10-13T19:50:29.343Z",
+  "legal-person-url": "/v0/legal-persons/lp.fixture02xxxxxxxxxxxxx",
+  "legal-person-claims-url": "/v0/legal-persons/lp.fixture02xxxxxxxxxxxxx/claims",
+  "legal-person-decisions-url": "/v0/legal-persons/lp.fixture02xxxxxxxxxxxxx/decisions",
+  "legal-person-verifications-url": "/v0/legal-persons/lp.fixture02xxxxxxxxxxxxx/verifications"
+}
