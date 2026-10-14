@@ -22,5 +22,14 @@ jobs:
       - run: opam exec -- dune build
       - run: opam exec -- dune build @examples/all
       - run: opam exec -- dune test
+      - run: opam install -y result odoc
+      # Warnings in this repository's files fail the step. A warning reported in a
+      # dependency's file (a reference in an included signature that does not resolve
+      # from here) is shown but belongs to that repository.
+      - name: Build API docs (odoc warnings in this repository fail the step)
+        run: |
+          set -o pipefail
+          opam exec -- dune build @doc --display short 2>&1 | tee doc.log
+          if grep -A1 -E '^File "(lib|bin|examples|test)/' doc.log | grep -q "Warning"; then exit 1; fi
   obj-magic:
     uses: winterchill-trading/infra/.github/workflows/obj-magic.yml@main
