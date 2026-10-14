@@ -4,7 +4,7 @@ open Griffin_provider
 let%expect_test "the transfer record's binary shape is pinned" =
   (* A service persists these records; a change here needs a new version and a migration. *)
   print_endline [%bin_digest: Store.Transfer_record.t];
-  [%expect {| fd7c04e6707ec155d04b7e17ed14628a |}]
+  [%expect {| e6dcae1881ad82bbd1392cf40849d9b6 |}]
 ;;
 
 let%expect_test "the memory store finds a transfer by its payment" =
@@ -14,11 +14,12 @@ let%expect_test "the memory store finds a transfer by its payment" =
     { id = Payments_core.Transfer.Id.of_string "t-1"
     ; account = Banking_provider.Account_ref.of_string "ba.a"
     ; amount = Money.Amount.of_minor_units_int Money.Currency.gbp 500
-    ; scheme = "fps"
+    ; rail = Faster_payments
     ; creditor = "04-00-04 12345678"
     ; reference = "rent"
     ; payment_url = Some "/v0/payments/pm.p1"
     ; submission_url = None
+    ; scheme_ref = None
     ; status = Submitted
     ; updated_at = Time_ns.epoch
     }

@@ -23,11 +23,13 @@ module Transfer_record : sig
     { id : Transfer.Id.Stable.V1.t
     ; account : Account_ref.Stable.V1.t
     ; amount : Money.Amount.Stable.V1.t
-    ; scheme : string (** [fps] or [book-transfer] *)
+    ; rail : Rail.Stable.V2.t
+    (** [Faster_payments], or [Intraledger] for a book transfer *)
     ; creditor : string (** sort code and account number, or the Griffin account id *)
     ; reference : string
     ; payment_url : string option (** once created *)
     ; submission_url : string option (** once submitted *)
+    ; scheme_ref : string option (** the scheme's end-to-end id, once submitted *)
     ; status : Transfer.Status.t
     ; updated_at : Utc_time.Stable.V1.t
     }

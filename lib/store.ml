@@ -8,11 +8,12 @@ module Transfer_record = struct
     { id : Transfer.Id.Stable.V1.t
     ; account : Account_ref.Stable.V1.t
     ; amount : Money.Amount.Stable.V1.t
-    ; scheme : string
+    ; rail : Rail.Stable.V2.t
     ; creditor : string
     ; reference : string
     ; payment_url : string option
     ; submission_url : string option
+    ; scheme_ref : string option
     ; status : Transfer.Status.t
     ; updated_at : Utc_time.Stable.V1.t
     }
