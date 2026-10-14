@@ -895,11 +895,14 @@ let cop_result t ?beneficiary result =
     match result with
     | Ok (r : Model.Cop_request.t) -> Ok (payee_check r.cop_response)
     | Error e ->
-      (* The receiving bank refused the check (account not found, not supported, ...): a
-         4xx with an errors body. Anything else is our problem, not an answer. *)
+      (* The receiving bank's refusals (account not found, not supported, switched) come
+         as a 400 with an [account-...] code. Anything else, such as an unknown requester,
+         is a problem with our request, not an answer about the payee. *)
       (match G.Api_error.status_of_error e with
-       | Some status when status >= 400 && status < 500 ->
-         Ok Beneficiary.Payee_check.Not_possible
+       | Some 400
+         when String.is_prefix
+                (Tx_map.error_code (Error.to_string_hum e))
+                ~prefix:"account-" -> Ok Beneficiary.Payee_check.Not_possible
        | _ -> Error e)
   in
   Result.iter check ~f:(fun result ->
