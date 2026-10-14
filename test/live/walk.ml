@@ -122,6 +122,13 @@ let walk t ~run_id =
   let events = Adapter.events t in
   let%bind customer = approved_customer t ~run_id "walk" in
   step "customer created, checks run, decision accepted";
+  let%bind () =
+    Adapter.update_customer
+      t
+      customer.id
+      ~person:{ person with mobile = Kyc_core.Pii.create "+447700900001" }
+  in
+  step "customer updated (claims posted again)";
   let%bind account = Adapter.open_account t customer.id Money.Currency.gbp in
   let%bind again = Adapter.open_account t customer.id Money.Currency.gbp in
   let%bind () =
