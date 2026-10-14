@@ -1,0 +1,20 @@
+{
+  "admissions": [
+    {
+      "account-url": "/v0/bank/accounts/ba.fixture02xxxxxxxxxxxxx",
+      "admission-status": "delivered",
+      "created-at": "2026-10-13T19:51:08.191Z",
+      "admission-scheme-information": {
+        "payment-scheme": "fps",
+        "end-to-end-identification": "5WWPTLUH45NMVGNZTG2DPMPW6A"
+      },
+      "unique-scheme-identifier": "T44EL63NIVNDVJXIFL7YBQPO6Q",
+      "admission-url": "/v0/admissions/pa.fixture01xxxxxxxxxxxxx",
+      "payment-url": "/v0/payments/pm.fixture03xxxxxxxxxxxxx"
+    }
+  ],
+  "links": {
+    "prev": null,
+    "next": null
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "account-url": "/v0/bank/accounts/ba.fixture01xxxxxxxxxxxxx",
+  "submission-url": "/v0/submissions/ps.fixture01xxxxxxxxxxxxx",
+  "submission-scheme-information": {
+    "payment-scheme": "fps",
+    "end-to-end-identification": "5WWPTLUH45NMVGNZTG2DPMPW6A"
+  },
+  "created-at": "2026-10-13T19:51:08.191Z",
+  "submission-status": "delivered",
+  "created-by-url": "/v0/users/ur.fixture01xxxxxxxxxxxxx",
+  "created-by-user": {
+    "user-username": "someone@example.com",
+    "user-email": "someone@example.com",
+    "surname": "Example",
+    "given-name": "Sam",
+    "user-memberships-url": "/v0/users/ur.fixture01xxxxxxxxxxxxx/memberships",
+    "api-keys-url": "/v0/users/ur.fixture01xxxxxxxxxxxxx/api-keys",
+    "user-url": "/v0/users/ur.fixture01xxxxxxxxxxxxx"
+  },
+  "unique-scheme-identifier": "VEUYRLSXX5O2LBNY45EXCZXFWU",
+  "payment-url": "/v0/payments/pm.fixture02xxxxxxxxxxxxx"
+}
