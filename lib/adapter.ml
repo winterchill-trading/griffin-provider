@@ -1,12 +1,7 @@
 open! Core
 open Async
 open Banking_provider
-
-(* payments-core has a [Uk_account] of its own now; this adapter still uses the local one,
-   so keep it visible past the open. *)
-module Local_uk_account = Uk_account
 open Payments_core
-module Uk_account = Local_uk_account
 module G = Griffin_client
 module Model = G.Model
 module Client = G.Client
@@ -54,6 +49,8 @@ type t =
   ; mutable event_cursor : string (** [created-at] of the newest event handled *)
   ; mutable keys : G.Webhook.Keys.t option
   ; mutable funding : Model.Bank_account.t option
+  ; simulated_checks : Beneficiary.Payee_check.t Beneficiary.Id.Table.t
+  (** answers fixed by [simulate_payee_check] *)
   ; mutable polling : bool
   ; mutable errors : Error.t list
   }
@@ -86,6 +83,7 @@ let create ?(config = Config.default) ?(store = Store.memory ()) client =
   ; event_cursor = iso (Time_ns.sub (now ()) config.event_lookback)
   ; keys = None
   ; funding = None
+  ; simulated_checks = Beneficiary.Id.Table.create ()
   ; polling = false
   ; errors = []
   }
@@ -446,14 +444,15 @@ let statement t account ~from ~until =
 
 let check_rail (rail : Rail.t) =
   match rail with
-  | Intraledger | Sepa_credit | Sepa_instant -> Ok ()
-  (* GBP payments are still drafted on [Intraledger] here; the UK rails come later. *)
+  | Faster_payments | Intraledger -> Ok ()
+  (* Griffin's accounts receive CHAPS and Bacs but send neither through the API. *)
+  | Chaps
+  | Bacs
+  | Sepa_credit
+  | Sepa_instant
   | Onchain _
   | Lightning
   | Card_scheme
-  | Faster_payments
-  | Chaps
-  | Bacs
   | Ach _
   | Rtp
   | Fedwire ->
@@ -477,7 +476,16 @@ let quote_fee t ~from ~rail amount =
      })
 ;;
 
-(* Where a transfer goes, as a Griffin creditor and scheme. *)
+(* The sort code and account number a beneficiary names: a UK account, a GB IBAN, or the
+   text of an [Internal] beneficiary ([04-00-04 12345678]). *)
+let uk_destination (b : Beneficiary.t) =
+  match Beneficiary.Destination.uk_account b.destination, b.destination with
+  | Some u, _ -> Some u
+  | None, Internal { account } -> Uk_account.of_string account |> Result.ok
+  | None, _ -> None
+;;
+
+(* Where a transfer goes, as a Griffin creditor and scheme: the rail decides the scheme. *)
 let creditor_of (transfer : Transfer.t) =
   let open Or_error.Let_syntax in
   let%bind (b : Beneficiary.t) =
@@ -485,30 +493,27 @@ let creditor_of (transfer : Transfer.t) =
     | Beneficiary b -> Ok b
     | External _ -> Or_error.error_string "an outgoing transfer needs a beneficiary"
   in
-  let uk u =
-    ( Client.Creditor.Uk_domestic
-        { account_holder = b.name
-        ; account_number = u.Uk_account.account_number
-        ; sort_code = u.sort_code
-        }
-    , `Fps
-    , Uk_account.to_string u )
-  in
-  match b.destination with
-  | Bank_account { iban; _ } -> Uk_account.of_iban iban >>| uk
-  | Internal { account } when String.is_prefix account ~prefix:"ba." ->
-    Ok
-      ( Client.Creditor.Griffin_account (Refs.account_url (Account_ref.of_string account))
-      , `Book_transfer
-      , account )
-  | Internal { account } -> Uk_account.of_string account >>| uk
-  | Uk_account a ->
-    Uk_account.create
-      ~sort_code:(Sort_code.to_string a.sort_code)
-      ~account_number:a.account_number
-    >>| uk
-  | Crypto _ | Lightning _ | Us_account _ ->
-    Or_error.error_string "Griffin pays UK bank accounts only"
+  match%bind Tx_map.scheme_of_rail transfer.rail with
+  | `Fps ->
+    (match uk_destination b with
+     | Some u ->
+       Ok
+         ( Client.Creditor.Uk_domestic
+             { account_holder = b.name
+             ; account_number = u.account_number
+             ; sort_code = Sort_code.to_string u.sort_code
+             }
+         , Uk_account.to_string u )
+     | None ->
+       Or_error.error_string "Faster Payments need a UK sort code and account number")
+  | `Book_transfer ->
+    (match b.destination with
+     | Internal { account } when String.is_prefix account ~prefix:"ba." ->
+       Ok
+         ( Client.Creditor.Griffin_account
+             (Refs.account_url (Account_ref.of_string account))
+         , account )
+     | _ -> Or_error.error_string "a book transfer needs a Griffin account id (ba.)")
 ;;
 
 let info_of_record (r : Transfer_record.t) =
@@ -516,7 +521,7 @@ let info_of_record (r : Transfer_record.t) =
   ; provider_ref = Option.value_map r.payment_url ~default:"" ~f:Refs.id_of_url
   ; status = r.status
   ; fee = Money.Amount.zero Money.Currency.gbp
-  ; details = Intraledger
+  ; details = Tx_map.details r.rail ~scheme_ref:r.scheme_ref
   ; updated_at = r.updated_at
   }
 ;;
@@ -535,11 +540,18 @@ let transfer_event (r : Transfer_record.t) ~id ~update =
 let observe_submission ?status_reason t (r : Transfer_record.t) (s : Model.Submission.t) =
   let status = Tx_map.submission_status ?status_reason s in
   let%map r =
-    if Transfer.Status.equal status r.status && Option.is_some r.submission_url
+    if Transfer.Status.equal status r.status
+       && Option.is_some r.submission_url
+       && Option.is_some r.scheme_ref
     then return r
     else (
       let r =
-        { r with status; submission_url = Some s.submission_url; updated_at = now () }
+        { r with
+          status
+        ; submission_url = Some s.submission_url
+        ; scheme_ref = Option.first_some (Tx_map.scheme_ref s) r.scheme_ref
+        ; updated_at = now ()
+        }
       in
       let%map () = t.store.set_transfer r in
       r)
@@ -555,9 +567,9 @@ let observe_submission ?status_reason t (r : Transfer_record.t) (s : Model.Submi
 ;;
 
 let scheme_of_record (r : Transfer_record.t) =
-  if String.equal r.scheme (Tx_map.scheme_name `Book_transfer)
-  then `Book_transfer
-  else `Fps
+  match Tx_map.scheme_of_rail r.rail with
+  | Ok `Book_transfer -> `Book_transfer
+  | _ -> `Fps
 ;;
 
 (* Griffin refuses a submission it will never accept with a 422 and a code; anything else
@@ -615,17 +627,18 @@ let initiate_transfer t ~from (transfer : Transfer.t) =
     in
     let%bind () = Deferred.return (check_rail transfer.rail) in
     let%bind value = Deferred.return (Units.to_griffin_value transfer.amount) in
-    let%bind creditor, scheme, creditor_text = Deferred.return (creditor_of transfer) in
+    let%bind creditor, creditor_text = Deferred.return (creditor_of transfer) in
     let%bind account = bank_account t from in
     let record =
       { Transfer_record.id = transfer.id
       ; account = from
       ; amount = transfer.amount
-      ; scheme = Tx_map.scheme_name scheme
+      ; rail = transfer.rail
       ; creditor = creditor_text
       ; reference = transfer.reference
       ; payment_url = None
       ; submission_url = None
+      ; scheme_ref = None
       ; status = Draft
       ; updated_at = now ()
       }
@@ -900,14 +913,39 @@ let payee_check (r : Model.Cop_response.t) : Beneficiary.Payee_check.t =
   | _ -> Not_possible
 ;;
 
+(* What a refused check says about the payee. *)
+let payee_check_of_error e : Beneficiary.Payee_check.t option =
+  match G.Api_error.status_of_error e with
+  | Some 400 ->
+    (* The receiving bank's refusals come as a 400 with an [account-...] code; anything
+       else, such as an unknown requester, is a problem with our request. *)
+    (match Tx_map.error_code (Error.to_string_hum e) with
+     | "account-not-found" -> Some Account_not_found
+     | code when String.is_prefix code ~prefix:"account-" -> Some Not_possible
+     | _ -> None)
+  | Some status when status >= 500 -> Some Unavailable
+  | _ -> None
+;;
+
 let cop_check customer ~name ~business (u : Uk_account.t) =
   { Client.Cop_check.name
   ; account_number = u.account_number
-  ; sort_code = u.sort_code
+  ; sort_code = Sort_code.to_string u.sort_code
   ; classification = (if business then `Business else `Personal)
   ; secondary_reference = None
   ; requester_legal_person_url = Refs.legal_person_url customer
   }
+;;
+
+let payee_check_event b (result : Beneficiary.Payee_check.t) =
+  event
+    ~id:
+      (sprintf
+         "cop:%s:%s"
+         (Beneficiary.Id.to_string b)
+         (Sexp.to_string [%sexp (result : Beneficiary.Payee_check.t)]))
+    ~at:(now ())
+    (Payee_check { beneficiary = b; result })
 ;;
 
 let cop_result t ?beneficiary result =
@@ -915,28 +953,12 @@ let cop_result t ?beneficiary result =
     match result with
     | Ok (r : Model.Cop_request.t) -> Ok (payee_check r.cop_response)
     | Error e ->
-      (* The receiving bank's refusals (account not found, not supported, switched) come
-         as a 400 with an [account-...] code. Anything else, such as an unknown requester,
-         is a problem with our request, not an answer about the payee. *)
-      (match G.Api_error.status_of_error e with
-       | Some 400
-         when String.is_prefix
-                (Tx_map.error_code (Error.to_string_hum e))
-                ~prefix:"account-" -> Ok Beneficiary.Payee_check.Not_possible
-       | _ -> Error e)
+      (match payee_check_of_error e with
+       | Some answer -> Ok answer
+       | None -> Error e)
   in
   Result.iter check ~f:(fun result ->
-    Option.iter beneficiary ~f:(fun b ->
-      publish
-        t
-        (event
-           ~id:
-             (sprintf
-                "cop:%s:%s"
-                (Beneficiary.Id.to_string b)
-                (Sexp.to_string [%sexp (result : Beneficiary.Payee_check.t)]))
-           ~at:(now ())
-           (Payee_check { beneficiary = b; result }))));
+    Option.iter beneficiary ~f:(fun b -> publish t (payee_check_event b result)));
   check
 ;;
 
@@ -1023,7 +1045,7 @@ let simulate_deposit t ~account ~rail amount =
       ( Client.Creditor.Uk_domestic
           { account_holder = target.display_name
           ; account_number = u.account_number
-          ; sort_code = u.sort_code
+          ; sort_code = Sort_code.to_string u.sort_code
           }
       , `Fps )
   in
@@ -1114,31 +1136,46 @@ let simulate_transfer_outcome _ _ _ =
   unsupported "transfer outcomes (the sandbox delivers every payment)"
 ;;
 
-(* [Provider.S.verify_payee] over [confirm_payee]: UK accounts, GB IBANs and the sort-code
-   text [Internal] beneficiaries carry; other destinations cannot be checked. *)
-let verify_payee t ~customer (b : Beneficiary.t) =
-  let account =
-    match b.destination with
-    | Uk_account a ->
-      Uk_account.create
-        ~sort_code:(Sort_code.to_string a.sort_code)
-        ~account_number:a.account_number
-      |> Result.ok
-    | Bank_account { iban; _ } -> Uk_account.of_iban iban |> Result.ok
-    | Internal { account } -> Uk_account.of_string account |> Result.ok
-    | Crypto _ | Lightning _ | Us_account _ -> None
-  in
-  match account with
-  | None -> return (Ok Beneficiary.Payee_check.Not_possible)
-  | Some account -> confirm_payee ~beneficiary:b.id t ~customer ~name:b.name account
+(* A simulated answer as the Griffin simulator outcome that produces it. *)
+let simulator_outcome : Beneficiary.Payee_check.t -> string option = function
+  | Match -> Some "full-match"
+  | Close_match _ -> Some "close-match-name"
+  | No_match -> Some "no-match-name"
+  | Account_not_found -> Some "account-not-found"
+  | Not_possible -> Some "account-not-supported"
+  | Unavailable -> None
 ;;
 
-(* Griffin's simulator fixes the answer of one request, not of a beneficiary. *)
-let simulate_payee_check _t (_ : Beneficiary.Id.t) (_ : Beneficiary.Payee_check.t) =
-  return
-    (Or_error.error_string
-       "Griffin simulates one Confirmation of Payee request at a time: use \
-        simulate_confirm_payee")
+(* Confirmation of Payee for a beneficiary. In the sandbox, an answer fixed by
+   [simulate_payee_check] is asked of Griffin's simulator instead, so it still travels
+   through Griffin; [Unavailable], which the simulator has no outcome for, is answered
+   here. *)
+let verify_payee t ~customer (b : Beneficiary.t) =
+  match uk_destination b with
+  | None -> return (Ok Beneficiary.Payee_check.Not_possible)
+  | Some account ->
+    (match Hashtbl.find t.simulated_checks b.id with
+     | None -> confirm_payee ~beneficiary:b.id t ~customer ~name:b.name account
+     | Some answer ->
+       (match simulator_outcome answer with
+        | None ->
+          publish t (payee_check_event b.id answer);
+          return (Ok answer)
+        | Some outcome ->
+          let%map.Deferred result =
+            Client.simulate_confirm_payee
+              t.client
+              (cop_check customer ~name:b.name ~business:false account)
+              ~outcome
+          in
+          cop_result t ~beneficiary:b.id result))
+;;
+
+let simulate_payee_check t beneficiary answer =
+  let open Deferred.Or_error.Let_syntax in
+  let%map () = sandbox_only t "simulate_payee_check" in
+  Hashtbl.set t.simulated_checks ~key:beneficiary ~data:answer;
+  publish t (payee_check_event beneficiary answer)
 ;;
 
 let ping t =

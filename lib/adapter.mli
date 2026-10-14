@@ -7,19 +7,22 @@
     in a {!Store.t}; [open_account] also finds an account the store lost by listing the
     legal person's accounts.
 
-    {b Payments.} [initiate_transfer] creates a Griffin payment and submits it. A
-    beneficiary held as a GB IBAN, or an [Internal] beneficiary naming a sort code and
-    account number ([04-00-04 12345678]), is paid by Faster Payments; an [Internal]
-    beneficiary naming a Griffin account id ([ba.]) by a book transfer. Griffin runs no
-    customer authentication on payments, so no SCA challenge is ever returned. GBP
-    payments are reported on the [Intraledger] rail until payments-core has a Faster
-    Payments rail ({!Tx_map}).
+    {b Payments.} [initiate_transfer] creates a Griffin payment and submits it. A transfer
+    on [Faster_payments] goes to the beneficiary's sort code and account number (a
+    [Uk_account], a GB IBAN, or an [Internal] beneficiary written [04-00-04 12345678]);
+    one on [Intraledger] is a book transfer to an [Internal] beneficiary naming a Griffin
+    account id ([ba.]). Details are [Uk_domestic] with Griffin's end-to-end id. Griffin
+    runs no customer authentication on payments, so no SCA challenge is ever returned.
+
+    {b Payees.} [verify_payee] is Confirmation of Payee. In the sandbox,
+    [simulate_payee_check] fixes a beneficiary's answer, which later checks ask of
+    Griffin's simulator.
 
     {b Events.} Griffin posts every organization event to one webhook; a service passes
     each delivery to {!ingest_webhook}. Without one, the adapter polls the organization's
-    event log while anything is subscribed to {!val-events}. Both paths derive the same event
-    ids from Griffin's data, and calls that observe a change ([kyc_status], [transfer])
-    publish it too.
+    event log while anything is subscribed to {!val-events}. Both paths derive the same
+    event ids from Griffin's data, and calls that observe a change ([kyc_status],
+    [transfer]) publish it too.
 
     {b Not offered by Griffin through this adapter} (each answers an error saying so):
     cards, swaps, standing orders, crypto, SCA, e-mail and SMS codes, and any currency but
@@ -84,12 +87,13 @@ include Sandbox.S with type t := t
 
 (** {2 Griffin-specific} *)
 
-(** The sort code and account number of an open account, which [Account.t] cannot carry. *)
-val uk_details : t -> Account_ref.t -> Uk_account.t Or_error.t Deferred.t
+(** The sort code and account number of an open account (also its [Account.Address]). *)
+val uk_details : t -> Account_ref.t -> Payments_core.Uk_account.t Or_error.t Deferred.t
 
-(** Confirmation of Payee for a payment [customer] is about to make: does [name] match the
-    account holder at the receiving bank? [account-not-found] and other refusals by the
-    receiving bank give [Not_possible]. When [beneficiary] is given the answer is also
+(** Confirmation of Payee by account details rather than a beneficiary (prefer
+    [verify_payee]): does [name] match the holder at the receiving bank?
+    [account-not-found] gives [Account_not_found], the receiving bank's other refusals
+    [Not_possible], a 5xx [Unavailable]. When [beneficiary] is given the answer is also
     published as a [Payee_check] event. *)
 val confirm_payee
   :  ?beneficiary:Payments_core.Beneficiary.Id.t
@@ -97,7 +101,7 @@ val confirm_payee
   -> t
   -> customer:Customer_ref.t
   -> name:string
-  -> Uk_account.t
+  -> Payments_core.Uk_account.t
   -> Payments_core.Beneficiary.Payee_check.t Or_error.t Deferred.t
 
 (** Sandbox only: Griffin's simulated Confirmation of Payee answer ([full-match],
@@ -106,7 +110,7 @@ val simulate_confirm_payee
   :  t
   -> customer:Customer_ref.t
   -> name:string
-  -> Uk_account.t
+  -> Payments_core.Uk_account.t
   -> outcome:string
   -> Payments_core.Beneficiary.Payee_check.t Or_error.t Deferred.t
 
