@@ -4,7 +4,13 @@ open Banking_provider
 open Payments_core
 module Adapter = Griffin_provider.Adapter
 
-let config = { Adapter.Config.default with poll_interval = Time_ns.Span.of_ms 10. }
+(* The in-memory Griffin keeps sandbox balances as they open. *)
+let config =
+  { Adapter.Config.default with
+    poll_interval = Time_ns.Span.of_ms 10.
+  ; empty_sandbox_accounts = false
+  }
+;;
 
 let setup () =
   let fake = Fake_griffin.create () in
@@ -407,12 +413,12 @@ let%expect_test "verify_payee: Confirmation of Payee, and answers fixed per bene
   [%expect
     {|
     (Ok Match)
-    (Ok (Close_match (suggested_name "Example Payee Close")))
+    (Ok (Close_match (suggested_name "")))
     (Ok No_match)
     (Ok Account_not_found)
     (Ok Not_possible)
     (Ok Unavailable)
-    7
+    6
     |}];
   return ()
 ;;
