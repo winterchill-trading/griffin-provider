@@ -12,7 +12,7 @@ interface and Griffin; cards, swaps, standing orders, crypto and SCA answer an e
 
 | Path | Holds |
 | --- | --- |
-| `lib/` | Library `griffin_provider`: `Adapter`, `Store`, `Refs`, `Uk_account`, `Units`, `Kyc_map`, `Account_map`, `Tx_map`, `Griffin_time` (see `lib/AGENTS.md`) |
+| `lib/` | Library `griffin_provider`: `Adapter`, `Store`, `Refs`, `Units`, `Kyc_map`, `Account_map`, `Tx_map`, `Griffin_time` (see `lib/AGENTS.md`) |
 | `bin/` | `griffin-provider` CLI: KYC status, accounts, balance, UK details, statement, CoP, events (see `bin/AGENTS.md`) |
 | `test/` | Mapping tests on recorded bodies, adapter tests against an in-memory Griffin, live runners in `test/live/` (see `test/AGENTS.md`) |
 | `examples/` | `onboard_and_pay.ml`, built in CI (see `examples/AGENTS.md`) |
@@ -53,7 +53,7 @@ Standalone: pin the siblings listed in `.github/workflows/ci.yml` from GitHub, t
 - Event ids are derived from Griffin data so poll, webhook and status queries agree; keep
   them that way when adding an event.
 - Griffin has no idempotency keys: every create goes through the `Store` first.
-- Comments for humans at non-obvious choices (the `Intraledger` rail for GBP, the 422
+- Comments for humans at non-obvious choices (the emptied sandbox accounts, the 422
   refusal handling). Add a `CHANGES.md` "Unreleased" entry for user-visible changes, and
   update `docs/mapping.md` when an operation's mapping changes.
 
@@ -74,12 +74,15 @@ line because CI has no credentials. The `obj-magic` job rejects `Obj.magic`. Che
 
 ## Pitfalls
 
-- payments-core's SEPA rails validate EUR, so GBP payments are drafted and reported on
-  `Intraledger`; a GB IBAN carries the sort code and account number.
-- banking-provider's conformance suite opens an EUR account first, so only 4 of 11
-  scenarios can pass here; `test/live/walk.ml` checks the money properties in GBP.
-- Sandbox accounts start with GBP 1m and payments above GBP 1m are refused with
-  `payment-amount-exceeds-scheme-limit` before the balance is checked.
+- GBP payments go on `Faster_payments` (Griffin `fps`) or `Intraledger` (book transfer)
+  with `Uk_domestic` details; sort codes and accounts are payments-core's `Sort_code` and
+  `Uk_account`. Persist rails with `Rail.Stable.V2` and events with `Event.Stable.V2`: the
+  V1 formats refuse UK rails.
+- Run the conformance suite with `Conformance.Config.gbp`; only the card scenario fails.
+- Sandbox accounts are credited GBP 1m on opening; the adapter moves it away
+  (`Config.empty_sandbox_accounts`), and the in-memory Griffin tests turn that off.
+  payments-core's `Transfer.draft` refuses Faster Payments above GBP 1m, so a test of
+  Griffin's `payment-amount-exceeds-scheme-limit` builds the record past it.
 - `submission-status-reason` (e.g. `insufficient-funds`) is not in griffin-client's
   `Submission.t`; the adapter reads the raw JSON.
 - Inside `Deferred.Or_error.Let_syntax`, `>>|` maps the `Or_error`; use `Deferred.map` on
