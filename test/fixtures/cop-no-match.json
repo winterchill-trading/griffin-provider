@@ -1,0 +1,15 @@
+{
+  "cop-request-url": "/v0/cop-request/cp.fixture04xxxxxxxxxxxxx",
+  "account": {
+    "name": "Example Payee",
+    "bank-id": "040004",
+    "account-number": "00000000",
+    "account-classification": "personal",
+    "requester-legal-person-url": "/v0/legal-persons/lp.fixture02xxxxxxxxxxxxx"
+  },
+  "cop-response": {
+    "status": "unverified",
+    "result": "no-match",
+    "reason": "no-match-name"
+  }
+}
