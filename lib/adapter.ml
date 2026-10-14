@@ -228,7 +228,7 @@ let update_customer t customer ~person =
   let open Deferred.Or_error.Let_syntax in
   let%bind lp = legal_person t customer in
   let%bind link = need_d "legal-person-claims-url" lp.legal_person_claims_url in
-  (* Posting a claim of a type the legal person already has replaces it. *)
+  (* One claim per fact; Griffin keeps them on the legal person. *)
   Deferred.Or_error.List.iter
     ~how:`Sequential
     (Kyc_map.person_claims person)
