@@ -17,7 +17,7 @@
 
     {b Events.} Griffin posts every organization event to one webhook; a service passes
     each delivery to {!ingest_webhook}. Without one, the adapter polls the organization's
-    event log while anything is subscribed to {!events}. Both paths derive the same event
+    event log while anything is subscribed to {!val-events}. Both paths derive the same event
     ids from Griffin's data, and calls that observe a change ([kyc_status], [transfer])
     publish it too.
 
